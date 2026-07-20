@@ -1,11 +1,13 @@
+import CountdownTimer from "../islands/CountdownTimer.tsx";
+import TabNavigation from "../islands/TabNavigation.tsx";
+import EventViewToggle from "../islands/EventViewToggle.tsx";
+import ModalManager from "../islands/ModalManager.tsx";
+import AdminPanel from "../islands/AdminPanel.tsx";
+import MembersFilter from "../islands/MembersFilter.tsx";
+import Calendar from "../islands/Calendar.tsx";
+import ModalContainer from "../islands/ModalContainer.tsx";
 import Topbar from "../components/Topbar.tsx";
 import Hero from "../components/Hero.tsx";
-import Navigation from "../components/Navigation.tsx";
-import EventsSection from "../components/EventsSection.tsx";
-import LeaderboardSection from "../components/LeaderboardSection.tsx";
-import ResultsSection from "../components/ResultsSection.tsx";
-import MembersSection from "../components/MembersSection.tsx";
-import AdminSection from "../components/AdminSection.tsx";
 import Footer from "../components/Footer.tsx";
 
 export default function Home() {
@@ -132,8 +134,8 @@ export default function Home() {
         .form{display:flex;flex-direction:column;gap:12px}
         .form input,.form textarea,.form select{width:100%;border:1px solid var(--line);background:rgba(0,0,0,.4);color:#fff;padding:12px;border-radius:12px;font-size:13px}
         .form textarea{min-height:80px;resize:vertical}
-        .modal-back{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);justify-content:center;align-items:center;z-index:100}
-        .modal-back.hidden{display:none}
+        .modal-back{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);justify-content:center;align-items:center;z-index:100;flex-direction:column}
+        .modal-back.hidden{display:none!important}
         .modal{border:1px solid var(--line);background:rgba(0,0,0,.95);border-radius:20px;padding:28px;max-width:500px;width:90vw;max-height:90vh;overflow-y:auto}
         .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
         .modal-head h3{margin:0;font-family:var(--font-display)}
@@ -143,17 +145,619 @@ export default function Home() {
         .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;padding-top:20px;border-top:1px solid var(--line)}
         .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse .8s infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .tools{display:flex;gap:8px}
       `}</style>
       <div class="wrap">
         <Topbar />
         <Hero />
-        <Navigation />
-        <EventsSection />
-        <LeaderboardSection />
-        <ResultsSection />
-        <MembersSection />
-        <AdminSection />
+        <TabNavigation />
+
+        {/* Events Section */}
+        <section id="events" class="content active">
+          <div class="section-head">
+            <h2>Lo que se viene</h2>
+            <EventViewToggle />
+          </div>
+          <div id="eventCards" class="grid cards2">
+            <article class="card">
+              <div class="imgph">Event image upload</div>
+              <div class="card-body">
+                <div style="display:flex;justify-content:space-between;gap:14px">
+                  <h3>Entreno DEKA</h3>
+                  <span class="badge">8 apuntados</span>
+                </div>
+                <div class="meta">
+                  📅 12 Jul 2026 · 10:00
+                  <br />
+                  📍 GreenHorse Box, San Sebastián de los Reyes
+                </div>
+                <CountdownTimer targetDate="2026-07-12T10:00:00" className="mini-count" />
+                <p class="muted">
+                  Formato DEKA para preparar competición, compartir ritmos y
+                  representar al club juntos.
+                </p>
+                <div class="actions">
+                  <ModalManager
+                    buttonLabel="Apúntate"
+                    modalId="signupModal"
+                    buttonClass="btn green"
+                  />
+                  <button class="btn red admin-only hidden">Delete</button>
+                </div>
+              </div>
+            </article>
+            <article class="card">
+              <div class="imgph">Training session</div>
+              <div class="card-body">
+                <div style="display:flex;justify-content:space-between;gap:14px">
+                  <h3>HYROX Team Session</h3>
+                  <span class="badge">12 apuntados</span>
+                </div>
+                <div class="meta">
+                  📅 19 Jul 2026 · 09:30
+                  <br />
+                  📍 Madrid
+                </div>
+                <CountdownTimer targetDate="2026-07-19T09:30:00" className="mini-count" />
+                <p class="muted">
+                  Team workout focused on sleds, wall balls and running transitions.
+                </p>
+                <div class="actions">
+                  <ModalManager
+                    buttonLabel="Apúntate"
+                    modalId="signupModal"
+                    buttonClass="btn green"
+                  />
+                  <button class="btn red admin-only hidden">Delete</button>
+                </div>
+              </div>
+            </article>
+          </div>
+          <Calendar />
+        </section>
+
+        {/* Leaderboard Section */}
+        <section id="leaderboard" class="content">
+          <div class="section-head">
+            <h2>PRs del club</h2>
+            <ModalManager
+              buttonLabel="+ Añadir PR"
+              modalId="prModal"
+              buttonClass="btn dark"
+            />
+          </div>
+          <div class="grid cards2">
+            <article class="card leader-card">
+              <h3>Clean & Jerk</h3>
+              <div class="row">
+                <div class="rank">#1</div>
+                <div>
+                  <b>Member A</b>
+                  <div class="bar">
+                    <div class="fill" style="width:92%"></div>
+                  </div>
+                </div>
+                <div>
+                  <b>140kg</b>
+                </div>
+              </div>
+              <div class="row">
+                <div class="rank">#2</div>
+                <div>
+                  <b>Member B</b>
+                  <div class="bar">
+                    <div class="fill" style="width:78%"></div>
+                  </div>
+                </div>
+                <div>
+                  <b>125kg</b>
+                </div>
+              </div>
+              <div class="row">
+                <div class="rank">#3</div>
+                <div>
+                  <b>Member C</b>
+                  <div class="bar">
+                    <div class="fill" style="width:64%"></div>
+                  </div>
+                </div>
+                <div>
+                  <b>110kg</b>
+                </div>
+              </div>
+            </article>
+            <article class="card leader-card">
+              <h3>Snatch</h3>
+              <div class="row">
+                <div class="rank">#1</div>
+                <div>
+                  <b>Member A</b>
+                  <div class="bar">
+                    <div class="fill" style="width:88%"></div>
+                  </div>
+                </div>
+                <div>
+                  <b>100kg</b>
+                </div>
+              </div>
+              <div class="row">
+                <div class="rank">#2</div>
+                <div>
+                  <b>Member D</b>
+                  <div class="bar">
+                    <div class="fill" style="width:72%"></div>
+                  </div>
+                </div>
+                <div>
+                  <b>95kg</b>
+                </div>
+              </div>
+              <div class="row">
+                <div class="rank">#3</div>
+                <div>
+                  <b>Member B</b>
+                  <div class="bar">
+                    <div class="fill" style="width:60%"></div>
+                  </div>
+                </div>
+                <div>
+                  <b>85kg</b>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        {/* Results Section */}
+        <section id="results" class="content">
+          <div class="section-head">
+            <h2>Nuestras batallas</h2>
+            <ModalManager
+              buttonLabel="+ Añadir resultado"
+              modalId="resultModal"
+              buttonClass="btn dark"
+            />
+          </div>
+          <div class="grid cards3">
+            <article class="card">
+              <div class="imgph">Past event photo</div>
+              <div class="card-body">
+                <h3>HYROX Madrid</h3>
+                <div class="eyebrow">20 Jun 2026</div>
+                <p class="muted">
+                  Great team performance, strong finishing times and amazing spirit
+                  throughout the competition.
+                </p>
+              </div>
+            </article>
+            <article class="card">
+              <div class="imgph">Finish line</div>
+              <div class="card-body">
+                <h3>DEKA Event</h3>
+                <div class="eyebrow">10 May 2026</div>
+                <p class="muted">
+                  Internal challenge with strong team cohesion. Personal PRs
+                  achieved and future goals set.
+                </p>
+              </div>
+            </article>
+            <article class="card">
+              <div class="imgph">Team photo</div>
+              <div class="card-body">
+                <h3>Box Throwdown</h3>
+                <div class="eyebrow">28 Apr 2026</div>
+                <p class="muted">
+                  Friendly competition focused on partnership WODs and relay
+                  challenges. Great day overall.
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        {/* Members Section */}
+        <section id="members" class="content">
+          <div class="section-head">
+            <h2>Member profiles</h2>
+            <ModalManager
+              buttonLabel="+ Añadir miembro"
+              modalId="memberModal"
+              buttonClass="btn dark"
+            />
+          </div>
+          <MembersFilter />
+          <div class="stats">
+            <div class="stat">
+              <small>Members</small>
+              <b>24</b>
+            </div>
+            <div class="stat">
+              <small>Competitors</small>
+              <b>8</b>
+            </div>
+            <div class="stat">
+              <small>HYROX focus</small>
+              <b>15</b>
+            </div>
+            <div class="stat">
+              <small>Pending approvals</small>
+              <b>3</b>
+            </div>
+          </div>
+          <div class="grid cards3">
+            <article
+              class="card member-card"
+              data-name="Demo Athlete"
+              data-level="intermediate"
+              data-goal="crossfit"
+            >
+              <div class="card-body">
+                <div class="member-head">
+                  <div class="avatar">DA</div>
+                  <div>
+                    <h3>Demo Athlete</h3>
+                    <div class="meta">📍 Madrid</div>
+                  </div>
+                </div>
+                <div style="margin-top:12px">
+                  <div class="eyebrow">Focus</div>
+                  <p class="muted">CrossFit · HYROX training</p>
+                  <div class="eyebrow" style="margin-top:10px">
+                    Level
+                  </div>
+                  <p class="muted">Intermediate</p>
+                </div>
+              </div>
+            </article>
+            <article
+              class="card member-card"
+              data-name="Member B"
+              data-level="advanced"
+              data-goal="crossfit"
+            >
+              <div class="card-body">
+                <div class="member-head">
+                  <div class="avatar">MB</div>
+                  <div>
+                    <h3>Member B</h3>
+                    <div class="meta">📍 Madrid</div>
+                  </div>
+                </div>
+                <div style="margin-top:12px">
+                  <div class="eyebrow">Focus</div>
+                  <p class="muted">Strength training</p>
+                  <div class="eyebrow" style="margin-top:10px">
+                    Level
+                  </div>
+                  <p class="muted">Advanced</p>
+                </div>
+              </div>
+            </article>
+            <article
+              class="card member-card"
+              data-name="Member C"
+              data-level="beginner"
+              data-goal="hyrox"
+            >
+              <div class="card-body">
+                <div class="member-head">
+                  <div class="avatar">MC</div>
+                  <div>
+                    <h3>Member C</h3>
+                    <div class="meta">📍 Barcelona</div>
+                  </div>
+                </div>
+                <div style="margin-top:12px">
+                  <div class="eyebrow">Focus</div>
+                  <p class="muted">HYROX preparation</p>
+                  <div class="eyebrow" style="margin-top:10px">
+                    Level
+                  </div>
+                  <p class="muted">Beginner</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        {/* Admin Section */}
+        <section id="admin" class="content">
+          <AdminPanel />
+          <div id="adminOpen" class="hidden">
+            <div class="grid cards2" style="margin-top:16px">
+              <div class="pending">
+                <h3>
+                  Pending events <span class="badge">2 pending</span>
+                </h3>
+                <div class="pending-item">
+                  <b>Open training session</b>
+                  <br />
+                  <span class="muted">Submitted by club member</span>
+                  <div class="actions" style="margin-top:8px;gap:8px">
+                    <button class="btn green" style="flex:1;padding:8px">
+                      Approve
+                    </button>
+                    <button class="btn red" style="flex:1;padding:8px">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+                <div class="pending-item">
+                  <b>Weekend HYROX prep</b>
+                  <br />
+                  <span class="muted">Awaiting approval</span>
+                  <div class="actions" style="margin-top:8px;gap:8px">
+                    <button class="btn green" style="flex:1;padding:8px">
+                      Approve
+                    </button>
+                    <button class="btn red" style="flex:1;padding:8px">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="pending">
+                <h3>
+                  Pending PRs <span class="badge">4 pending</span>
+                </h3>
+                <div class="pending-item">
+                  <b>Member A · Clean & Jerk · 90kg</b>
+                  <div class="actions" style="margin-top:8px;gap:8px">
+                    <button class="btn green" style="flex:1;padding:8px">
+                      Approve
+                    </button>
+                    <button class="btn red" style="flex:1;padding:8px">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+                <div class="pending-item">
+                  <b>Member D · Snatch · 92kg</b>
+                  <div class="actions" style="margin-top:8px;gap:8px">
+                    <button class="btn green" style="flex:1;padding:8px">
+                      Approve
+                    </button>
+                    <button class="btn red" style="flex:1;padding:8px">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="pending">
+                <h3>
+                  Pending results <span class="badge">1 pending</span>
+                </h3>
+                <div class="pending-item">
+                  <b>HYROX Madrid</b>
+                  <br />
+                  <span class="muted">Includes uploaded photo</span>
+                  <div class="actions" style="margin-top:8px;gap:8px">
+                    <button class="btn green" style="flex:1;padding:8px">
+                      Approve
+                    </button>
+                    <button class="btn red" style="flex:1;padding:8px">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="pending">
+                <h3>
+                  Pending members <span class="badge">3 pending</span>
+                </h3>
+                <div class="pending-item">
+                  <b>New Member · Intermediate · HYROX</b>
+                  <div class="actions" style="margin-top:8px;gap:8px">
+                    <button class="btn green" style="flex:1;padding:8px">
+                      Approve
+                    </button>
+                    <button class="btn red" style="flex:1;padding:8px">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+                <div class="pending-item">
+                  <b>Second applicant · Beginner · CrossFit</b>
+                  <div class="actions" style="margin-top:8px;gap:8px">
+                    <button class="btn green" style="flex:1;padding:8px">
+                      Approve
+                    </button>
+                    <button class="btn red" style="flex:1;padding:8px">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <Footer />
+      </div>
+
+      {/* Modals */}
+      <div id="signupModal" class="modal-back">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>Apuntarse a evento</h3>
+            <button
+              class="close"
+              onclick={() => {
+                const modal = document.getElementById('signupModal');
+                if (modal) modal.style.display = 'none';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div class="form">
+            <input type="text" class="input" placeholder="Tu nombre" />
+            <input type="email" class="input" placeholder="Tu email" />
+            <select class="input">
+              <option>Selecciona un evento</option>
+              <option>Entreno DEKA - 12 Jul</option>
+              <option>HYROX Team Session - 19 Jul</option>
+            </select>
+            <textarea
+              class="input"
+              placeholder="Comentarios (opcional)"
+            ></textarea>
+            <button class="btn green">Confirmar apuntación</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="eventModal" class="modal-back">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>Añadir evento</h3>
+            <button
+              class="close"
+              onclick={() => {
+                const modal = document.getElementById('eventModal');
+                if (modal) modal.style.display = 'none';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div class="form">
+            <input type="text" class="input" placeholder="Nombre del evento" />
+            <input type="datetime-local" class="input" />
+            <input type="text" class="input" placeholder="Ubicación" />
+            <textarea
+              class="input"
+              placeholder="Descripción del evento"
+            ></textarea>
+            <button class="btn green">Crear evento</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="prModal" class="modal-back">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>Añadir PR</h3>
+            <button
+              class="close"
+              onclick={() => {
+                const modal = document.getElementById('prModal');
+                if (modal) modal.style.display = 'none';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div class="form">
+            <input type="text" class="input" placeholder="Tu nombre" />
+            <select class="input">
+              <option>Selecciona movimiento</option>
+              <option>Clean & Jerk</option>
+              <option>Snatch</option>
+              <option>Deadlift</option>
+              <option>Squat</option>
+            </select>
+            <input type="number" class="input" placeholder="Peso (kg)" />
+            <input type="date" class="input" />
+            <button class="btn green">Registrar PR</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultModal" class="modal-back">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>Añadir resultado</h3>
+            <button
+              class="close"
+              onclick={() => {
+                const modal = document.getElementById('resultModal');
+                if (modal) modal.style.display = 'none';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div class="form">
+            <input type="text" class="input" placeholder="Nombre de la competición" />
+            <input type="date" class="input" />
+            <textarea
+              class="input"
+              placeholder="Descripción y resultados"
+            ></textarea>
+            <input type="file" class="input" placeholder="Foto de la competición" />
+            <button class="btn green">Guardar resultado</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="memberModal" class="modal-back">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>Crear perfil</h3>
+            <button
+              class="close"
+              onclick={() => {
+                const modal = document.getElementById('memberModal');
+                if (modal) modal.style.display = 'none';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div class="form">
+            <input type="text" class="input" placeholder="Nombre completo" />
+            <input type="email" class="input" placeholder="Email" />
+            <select class="input">
+              <option>Selecciona nivel</option>
+              <option>Beginner</option>
+              <option>Intermediate</option>
+              <option>Advanced</option>
+            </select>
+            <select class="input">
+              <option>Focus principal</option>
+              <option>CrossFit</option>
+              <option>HYROX</option>
+              <option>General fitness</option>
+            </select>
+            <input type="text" class="input" placeholder="Ubicación" />
+            <button class="btn green">Crear perfil</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="profileModal" class="modal-back">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>Demo Athlete</h3>
+            <button
+              class="close"
+              onclick={() => {
+                const modal = document.getElementById('profileModal');
+                if (modal) modal.style.display = 'none';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div class="form">
+            <div style="text-align:center;margin-bottom:16px">
+              <div class="avatar" style="width:80px;height:80px;margin:0 auto;font-size:32px">
+                DA
+              </div>
+            </div>
+            <div style="background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px">
+              <div class="eyebrow">Email</div>
+              <p class="muted">demo.athlete@example.com</p>
+              <div class="eyebrow">Nivel</div>
+              <p class="muted">Intermediate</p>
+              <div class="eyebrow">Focus</div>
+              <p class="muted">CrossFit · HYROX training</p>
+              <div class="eyebrow">Ubicación</div>
+              <p class="muted">📍 Madrid</p>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
