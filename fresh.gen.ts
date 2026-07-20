@@ -4,30 +4,74 @@
 // running `deno run -A dev.ts`.
 
 import * as $0 from "./routes/_app.tsx";
-import * as $1 from "./routes/index.tsx";
-import * as $2 from "./islands/TabNavigation.tsx";
-import * as $3 from "./islands/EventViewToggle.tsx";
-import * as $4 from "./islands/ModalManager.tsx";
-import * as $5 from "./islands/CountdownTimer.tsx";
-import * as $6 from "./islands/AdminPanel.tsx";
-import * as $7 from "./islands/MembersFilter.tsx";
-import * as $8 from "./islands/Calendar.tsx";
-import * as $9 from "./islands/ModalContainer.tsx";
+import * as $1 from "./routes/_middleware.ts";
+import * as $2 from "./routes/index.tsx";
+import * as $3 from "./routes/api/admin/login.ts";
+import * as $4 from "./routes/api/admin/logout.ts";
+import * as $5 from "./routes/api/events/index.ts";
+import * as $6 from "./routes/api/events/[id]/approve.ts";
+import * as $7 from "./routes/api/events/[id]/delete.ts";
+import * as $8 from "./routes/api/events/[id]/signup.ts";
+import * as $9 from "./routes/api/members/index.ts";
+import * as $10 from "./routes/api/members/[id]/approve.ts";
+import * as $11 from "./routes/api/members/[id]/reject.ts";
+import * as $12 from "./routes/api/prs/index.ts";
+import * as $13 from "./routes/api/prs/[id]/approve.ts";
+import * as $14 from "./routes/api/prs/[id]/delete.ts";
+import * as $15 from "./routes/api/results/index.ts";
+import * as $16 from "./routes/api/results/[id]/approve.ts";
+import * as $17 from "./routes/api/results/[id]/delete.ts";
+import * as $18 from "./islands/TabNavigation.tsx";
+import * as $19 from "./islands/EventViewToggle.tsx";
+import * as $20 from "./islands/ModalManager.tsx";
+import * as $21 from "./islands/CountdownTimer.tsx";
+import * as $22 from "./islands/AdminPanel.tsx";
+import * as $23 from "./islands/AdminPendingPanel.tsx";
+import * as $24 from "./islands/MembersFilter.tsx";
+import * as $25 from "./islands/Calendar.tsx";
+import * as $26 from "./islands/ModalContainer.tsx";
+import * as $27 from "./islands/SignupForm.tsx";
+import * as $28 from "./islands/PRForm.tsx";
+import * as $29 from "./islands/MemberForm.tsx";
+import * as $30 from "./islands/EventForm.tsx";
+import * as $31 from "./islands/ResultForm.tsx";
 
 const manifest = {
   routes: {
     "./routes/_app.tsx": $0,
-    "./routes/index.tsx": $1,
+    "./routes/_middleware.ts": $1,
+    "./routes/index.tsx": $2,
+    "./routes/api/admin/login.ts": $3,
+    "./routes/api/admin/logout.ts": $4,
+    "./routes/api/events/index.ts": $5,
+    "./routes/api/events/[id]/approve.ts": $6,
+    "./routes/api/events/[id]/delete.ts": $7,
+    "./routes/api/events/[id]/signup.ts": $8,
+    "./routes/api/members/index.ts": $9,
+    "./routes/api/members/[id]/approve.ts": $10,
+    "./routes/api/members/[id]/reject.ts": $11,
+    "./routes/api/prs/index.ts": $12,
+    "./routes/api/prs/[id]/approve.ts": $13,
+    "./routes/api/prs/[id]/delete.ts": $14,
+    "./routes/api/results/index.ts": $15,
+    "./routes/api/results/[id]/approve.ts": $16,
+    "./routes/api/results/[id]/delete.ts": $17,
   },
   islands: {
-    "./islands/TabNavigation.tsx": $2,
-    "./islands/EventViewToggle.tsx": $3,
-    "./islands/ModalManager.tsx": $4,
-    "./islands/CountdownTimer.tsx": $5,
-    "./islands/AdminPanel.tsx": $6,
-    "./islands/MembersFilter.tsx": $7,
-    "./islands/Calendar.tsx": $8,
-    "./islands/ModalContainer.tsx": $9,
+    "./islands/TabNavigation.tsx": $18,
+    "./islands/EventViewToggle.tsx": $19,
+    "./islands/ModalManager.tsx": $20,
+    "./islands/CountdownTimer.tsx": $21,
+    "./islands/AdminPanel.tsx": $22,
+    "./islands/AdminPendingPanel.tsx": $23,
+    "./islands/MembersFilter.tsx": $24,
+    "./islands/Calendar.tsx": $25,
+    "./islands/ModalContainer.tsx": $26,
+    "./islands/SignupForm.tsx": $27,
+    "./islands/PRForm.tsx": $28,
+    "./islands/MemberForm.tsx": $29,
+    "./islands/EventForm.tsx": $30,
+    "./islands/ResultForm.tsx": $31,
   },
   baseUrl: import.meta.url,
 };
