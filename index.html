@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deloitte CrossFit HYROX Club Hub - HTML Preview</title>
+  <style>
+    :root{
+      --green:#86BC25;
+      --green2:#a7f23a;
+      --black:#050505;
+      --panel:rgba(255,255,255,.035);
+      --line:rgba(255,255,255,.11);
+      --muted:#a3a3a3;
+      --danger:#ff6b6b;
+      --radius:26px;
+      --font-display: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+      --font-body: Arial, Helvetica, sans-serif;
+      --font-mono: 'Courier New', monospace;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      color:#fff;
+      background:
+        radial-gradient(circle at 18% 5%, rgba(134,188,37,.20), transparent 28%),
+        radial-gradient(circle at 85% 0%, rgba(255,255,255,.08), transparent 24%),
+        linear-gradient(180deg,#050505 0%,#0b0b0b 55%,#000 100%);
+      font-family:var(--font-body);
+      min-height:100vh;
+    }
+    button,input,textarea,select{font-family:inherit}
+    .wrap{max-width:1180px;margin:0 auto;padding:24px 18px 54px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:18px;
+      border:1px solid var(--line);background:rgba(255,255,255,.035);backdrop-filter:blur(10px);
+      border-radius:var(--radius);padding:12px 16px;margin-bottom:32px;
+    }
+    .brand{display:flex;align-items:center;gap:14px}
+    .crest{
+      width:68px;height:68px;border-radius:22px;border:2px solid rgba(134,188,37,.55);
+      display:grid;place-items:center;background:#000;box-shadow:0 0 35px rgba(134,188,37,.2);position:relative;overflow:hidden;
+    }
+    .crest:before{content:"";position:absolute;inset:7px;border:2px solid var(--green);border-radius:18px;clip-path:polygon(50% 0,100% 18%,88% 88%,50% 100%,12% 88%,0 18%)}
+    .crest span{font-family:var(--font-display);font-size:15px;line-height:.95;text-align:center;color:#fff;z-index:1;letter-spacing:1px}.crest b{color:var(--green);display:block;font-size:22px}
+    .eyebrow{font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.33em;font-weight:800}
+    .brandtitle{font-family:var(--font-display);font-size:24px;text-transform:uppercase;letter-spacing:.08em}
+    .status{display:none;align-items:center;gap:8px;border:1px solid rgba(134,188,37,.32);border-radius:999px;padding:10px 15px;color:#d9ffad;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.dot{width:8px;height:8px;border-radius:99px;background:var(--green)}
+    @media(min-width:700px){.status{display:flex}}
+    .hero{display:grid;gap:26px;align-items:center;margin-bottom:30px}.hero h1{font-family:var(--font-display);font-size:clamp(52px,9vw,102px);line-height:.88;margin:0;text-transform:uppercase;letter-spacing:.02em}.hero h1 span{color:var(--green)}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(0,0,0,.6);border-radius:999px;padding:10px 14px;font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:800;color:#d4d4d4;margin-bottom:18px}.pill strong{color:var(--green)}
+    .hero p{color:#d4d4d4;line-height:1.7;max-width:650px;font-size:17px}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}.btn{border:0;border-radius:14px;padding:13px 18px;font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;cursor:pointer}.btn.green{background:var(--green);color:#000}.btn.dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.16)}.btn.red{background:transparent;color:#ffb3b3;border:1px solid rgba(255,107,107,.35)}.btn:hover{filter:brightness(1.12)}
+    .hero-card{border:1px solid rgba(134,188,37,.28);background:rgba(0,0,0,.72);border-radius:32px;padding:18px;box-shadow:0 0 70px rgba(134,188,37,.14)}
+    @media(min-width:900px){.hero{grid-template-columns:1.08fr .92fr}}
+    .wordmark{height:230px;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:#000;display:grid;place-items:center;margin-bottom:18px;position:relative;overflow:hidden}.wordmark:after{content:"";position:absolute;left:10%;right:10%;top:42%;height:2px;background:var(--green);box-shadow:0 72px 0 var(--green)}.wordmark .d{font-family:Arial Black,Arial,sans-serif;font-size:54px;font-weight:900;z-index:1}.wordmark .d span{color:var(--green)}.wordmark .h{font-family:var(--font-display);font-size:66px;color:var(--green);z-index:1;letter-spacing:.08em}.wordmark .c{font-family:var(--font-display);font-size:25px;z-index:1;letter-spacing:.28em;color:#eee}
+    .countdown{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.timebox{border:1px solid rgba(255,255,255,.11);border-radius:15px;background:rgba(0,0,0,.62);text-align:center;padding:12px 8px}.timebox b{font-family:var(--font-mono);font-size:28px}.timebox small{display:block;color:var(--green);font-size:10px;letter-spacing:.18em;font-weight:900;margin-top:4px}
+    .nav{position:sticky;top:10px;z-index:20;display:grid;grid-template-columns:repeat(2,1fr);overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.88);backdrop-filter:blur(10px);border-radius:20px;margin:26px 0}.tab{padding:16px 8px;background:transparent;color:#a3a3a3;border:0;border-right:1px solid rgba(255,255,255,.06);font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;font-size:13px;cursor:pointer}.tab.active{background:var(--green);color:#000}.tab:hover:not(.active){color:#fff}@media(min-width:800px){.nav{grid-template-columns:repeat(5,1fr)}}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}.section-head h2{font-family:var(--font-display);font-size:34px;text-transform:uppercase;letter-spacing:.1em;margin:0}.tools{display:flex;flex-wrap:wrap;gap:8px}.content{display:none}.content.active{display:block}.grid{display:grid;gap:16px}.cards2{grid-template-columns:1fr}@media(min-width:780px){.cards2{grid-template-columns:repeat(2,1fr)}}@media(min-width:960px){.cards3{grid-template-columns:repeat(3,1fr)}}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:28px;overflow:hidden}.card-body{padding:22px}.card h3{font-family:var(--font-display);font-size:25px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px}.meta{color:#d4d4d4;font-size:14px;line-height:1.8}.muted{color:var(--muted)}.imgph{height:170px;background:linear-gradient(135deg,rgba(134,188,37,.24),rgba(0,0,0,.8)),repeating-linear-gradient(45deg,rgba(255,255,255,.07),rgba(255,255,255,.07) 8px,transparent 8px,transparent 18px);display:grid;place-items:center;color:#cfff9a;text-transform:uppercase;letter-spacing:.18em;font-weight:900;font-size:12px}.badge{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(134,188,37,.34);background:rgba(134,188,37,.1);color:#d9ffad;border-radius:999px;padding:6px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:900}.mini-count{margin-top:14px}.mini-count .timebox{padding:8px 3px}.mini-count .timebox b{font-size:14px}.mini-count .timebox small{font-size:9px}
+    .calendar{border:1px solid var(--line);background:var(--panel);border-radius:28px;padding:18px}.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.cal-head h3{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;font-size:25px;margin:0}.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.cal-label{text-align:center;font-size:10px;color:#777;font-weight:900;letter-spacing:.18em}.cal-cell{min-height:90px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:rgba(0,0,0,.38);padding:8px}.cal-cell.empty{opacity:.3}.day{font-family:var(--font-mono);font-size:12px;color:#ddd;margin-bottom:6px}.event-chip{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(134,188,37,.14);color:#d7ffac;border:0;border-radius:8px;text-align:left;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;padding:5px;margin-top:4px;cursor:pointer}
+    .leader-card{padding:22px}.row{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;margin:14px 0}.rank{font-family:var(--font-mono);font-weight:900;color:var(--green)}.bar{height:30px;border:1px solid rgba(255,255,255,.1);border-radius:99px;background:#050505;overflow:hidden;position:relative}.fill{height:100%;background:repeating-linear-gradient(90deg,var(--green) 0, var(--green) 8px,#4e770d 8px,#4e770d 14px);box-shadow:0 0 18px rgba(134,188,37,.25)}.kg{font-family:var(--font-mono);font-weight:900;color:#fff}
+    .filters{border:1px solid var(--line);background:var(--panel);border-radius:24px;padding:14px;display:grid;gap:10px;margin-bottom:18px}@media(min-width:800px){.filters{grid-template-columns:1fr 190px 190px}}.input{width:100%;border:1px solid rgba(255,255,255,.11);background:#000;color:#fff;border-radius:13px;padding:13px}.stats{display:grid;gap:12px;margin-bottom:18px}@media(min-width:700px){.stats{grid-template-columns:repeat(3,1fr)}}.stat{border:1px solid var(--line);background:rgba(0,0,0,.5);border-radius:20px;padding:16px}.stat small{color:var(--green);font-size:11px;text-transform:uppercase;letter-spacing:.16em;font-weight:900}.stat b{display:block;font-family:var(--font-display);font-size:30px;margin-top:6px}.avatar{width:62px;height:62px;display:grid;place-items:center;border:1px solid rgba(134,188,37,.35);border-radius:18px;background:rgba(134,188,37,.1);color:#d9ffad;font-family:var(--font-display);font-size:25px}.member-head{display:flex;gap:14px;align-items:center}.prgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}.pr{background:rgba(0,0,0,.5);border-radius:14px;padding:11px;text-align:center}.pr small{display:block;font-size:10px;color:#777;text-transform:uppercase;font-weight:900}.pr b{font-family:var(--font-mono);font-size:17px}.admin-box{border:1px solid rgba(134,188,37,.22);background:rgba(134,188,37,.08);border-radius:28px;padding:22px}.pending{border:1px solid var(--line);background:var(--panel);border-radius:26px;padding:18px}.pending-item{border:1px solid var(--line);background:rgba(0,0,0,.5);border-radius:18px;padding:14px;margin-top:12px}.form{display:grid;gap:13px}.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:18px;z-index:99}.modal{width:min(660px,100%);max-height:90vh;overflow:auto;border:1px solid rgba(134,188,37,.3);background:#070707;border-radius:28px;padding:24px;box-shadow:0 0 70px rgba(134,188,37,.22)}.modal-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:16px}.modal h3{font-family:var(--font-display);font-size:24px;text-transform:uppercase;letter-spacing:.1em;margin:0}.close{background:transparent;border:1px solid var(--line);color:#aaa;border-radius:99px;width:36px;height:36px;cursor:pointer}.notice{border:1px solid rgba(134,188,37,.25);background:rgba(134,188,37,.08);border-radius:18px;padding:14px;color:#d4d4d4;font-size:14px;line-height:1.55}.footer{text-align:center;border-top:1px solid var(--line);padding-top:28px;margin-top:36px;color:#666;text-transform:uppercase;letter-spacing:.22em;font-size:11px}.hidden{display:none!important}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="crest"><span>Deloitte<b>HYROX</b>CLUB</span></div>
+        <div><div class="eyebrow">Madrid</div><div class="brandtitle">Club Hub</div></div>
+      </div>
+      <div class="status"><span class="dot"></span> CrossFit · HYROX</div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="pill"><strong>●</strong> Deloitte CrossFit & HYROX Club</div>
+        <h1>Train hard.<br>Progress <span>together.</span></h1>
+        <p>The central point for the club: upcoming events, sign-ups, member profiles, PRs, past competitions and admin moderation.</p>
+        <div class="actions">
+          <button class="btn green" onclick="openModal('signupModal')">Apuntarme</button>
+          <button class="btn dark" onclick="openModal('memberModal')">Crear perfil</button>
+        </div>
+      </div>
+      <aside class="hero-card">
+        <div class="wordmark">
+          <div style="text-align:center;z-index:1">
+            <div class="d">Deloitte<span>.</span></div>
+            <div class="h">HYROX</div>
+            <div class="c">CLUB</div>
+          </div>
+        </div>
+        <div class="eyebrow" style="margin-bottom:10px">Próximo evento</div>
+        <h2 style="font-family:var(--font-display);letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px;font-size:32px">Entreno DEKA</h2>
+        <div class="countdown" data-countdown="2026-07-12T10:00:00"></div>
+      </aside>
+    </section>
+
+    <nav class="nav">
+      <button class="tab active" data-tab="events">Eventos</button>
+      <button class="tab" data-tab="leaderboard">Leaderboard</button>
+      <button class="tab" data-tab="results">Resultados</button>
+      <button class="tab" data-tab="members">Members</button>
+      <button class="tab" data-tab="admin">Admin</button>
+    </nav>
+
+    <section id="events" class="content active">
+      <div class="section-head">
+        <h2>Lo que se viene</h2>
+        <div class="tools">
+          <button class="btn green" style="padding:10px 13px" onclick="showEventView('cards')">Cards</button>
+          <button class="btn dark" style="padding:10px 13px" onclick="showEventView('calendar')">Calendar</button>
+          <button class="btn dark" style="padding:10px 13px" onclick="openModal('eventModal')">+ Añadir evento</button>
+        </div>
+      </div>
+      <div id="eventCards" class="grid cards2">
+        <article class="card">
+          <div class="imgph">Event image upload</div>
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;gap:14px"><h3>Entreno DEKA</h3><span class="badge">8 apuntados</span></div>
+            <div class="meta">📅 12 Jul 2026 · 10:00<br>📍 GreenHorse Box, San Sebastián de los Reyes</div>
+            <div class="mini-count countdown" data-countdown="2026-07-12T10:00:00"></div>
+            <p class="muted">Formato DEKA para preparar competición, compartir ritmos y representar al club juntos.</p>
+            <div class="actions"><button class="btn green" onclick="openModal('signupModal')">Apúntate</button><button class="btn red admin-only hidden">Delete</button></div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="imgph">Training session</div>
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;gap:14px"><h3>HYROX Team Session</h3><span class="badge">12 apuntados</span></div>
+            <div class="meta">📅 19 Jul 2026 · 09:30<br>📍 Madrid</div>
+            <div class="mini-count countdown" data-countdown="2026-07-19T09:30:00"></div>
+            <p class="muted">Team workout focused on sleds, wall balls and running transitions.</p>
+            <div class="actions"><button class="btn green" onclick="openModal('signupModal')">Apúntate</button><button class="btn red admin-only hidden">Delete</button></div>
+          </div>
+        </article>
+      </div>
+      <div id="eventCalendar" class="calendar hidden">
+        <div class="cal-head"><button class="btn dark" style="padding:8px 12px">Prev</button><h3>Julio 2026</h3><button class="btn dark" style="padding:8px 12px">Next</button></div>
+        <div class="cal-grid" id="calendarGrid"></div>
+      </div>
+    </section>
+
+    <section id="leaderboard" class="content">
+      <div class="section-head"><h2>PRs del club</h2><button class="btn dark" onclick="openModal('prModal')">+ Añadir PR</button></div>
+      <div class="grid cards2">
+        <article class="card leader-card"><h3>Clean & Jerk</h3><div class="row"><div class="rank">#1</div><div><b>Member A</b><div class="bar"><div class="fill" style="width:92%"></div></div></div><div class="kg">105kg</div></div><div class="row"><div class="rank">#2</div><div><b>Member B</b><div class="bar"><div class="fill" style="width:78%"></div></div></div><div class="kg">90kg</div></div></article>
+        <article class="card leader-card"><h3>Snatch</h3><div class="row"><div class="rank">#1</div><div><b>Member A</b><div class="bar"><div class="fill" style="width:88%"></div></div></div><div class="kg">78kg</div></div><div class="row"><div class="rank">#2</div><div><b>Member C</b><div class="bar"><div class="fill" style="width:74%"></div></div></div><div class="kg">65kg</div></div></article>
+      </div>
+    </section>
+
+    <section id="results" class="content">
+      <div class="section-head"><h2>Nuestras batallas</h2><button class="btn dark" onclick="openModal('resultModal')">+ Añadir resultado</button></div>
+      <div class="grid cards3">
+        <article class="card"><div class="imgph">Past event photo</div><div class="card-body"><h3>HYROX Madrid</h3><div class="eyebrow">20 Jun 2026</div><p class="muted">Great team performance, strong finish and several PRs.</p><p class="notice">Participants: Member A, Member B, Member C</p><button class="btn red admin-only hidden">Delete</button></div></article>
+        <article class="card"><div class="imgph">Finish line</div><div class="card-body"><h3>DEKA Event</h3><div class="eyebrow">10 May 2026</div><p class="muted">Internal challenge with strong turnout and team support.</p><p class="notice">Participants: Member D, Member E</p><button class="btn red admin-only hidden">Delete</button></div></article>
+        <article class="card"><div class="imgph">Team photo</div><div class="card-body"><h3>Box Throwdown</h3><div class="eyebrow">28 Apr 2026</div><p class="muted">Friendly competition focused on strength and engine.</p><p class="notice">Participants: Member F, Member G</p><button class="btn red admin-only hidden">Delete</button></div></article>
+      </div>
+    </section>
+
+    <section id="members" class="content">
+      <div class="section-head"><h2>Member profiles</h2><button class="btn dark" onclick="openModal('memberModal')">+ Añadir miembro</button></div>
+      <div class="filters"><input class="input" placeholder="Search member, goal, location..."><select class="input"><option>All levels</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>Competition</option></select><select class="input"><option>All focus</option><option>HYROX</option><option>CrossFit</option><option>DEKA</option></select></div>
+      <div class="stats"><div class="stat"><small>Members</small><b>24</b></div><div class="stat"><small>Competitors</small><b>8</b></div><div class="stat"><small>HYROX focus</small><b>15</b></div></div>
+      <div class="grid cards3">
+        <article class="card"><div class="card-body"><div class="member-head"><div class="avatar">DA</div><div><h3>Demo Athlete</h3><div class="meta">📍 Madrid</div></div></div><div style="margin-top:14px"><span class="badge">Intermediate</span> <span class="badge">HYROX</span></div><div class="prgrid"><div class="pr"><small>Clean & Jerk</small><b>90kg</b></div><div class="pr"><small>Snatch</small><b>70kg</b></div><div class="pr"><small>HYROX</small><b>1:18</b></div></div><p class="muted">Entrena para mejorar consistencia y competir en equipo.</p><button class="btn dark" onclick="openModal('profileModal')">Ver perfil</button> <button class="btn red admin-only hidden">Delete</button></div></article>
+        <article class="card"><div class="card-body"><div class="member-head"><div class="avatar">MB</div><div><h3>Member B</h3><div class="meta">📍 Madrid</div></div></div><div style="margin-top:14px"><span class="badge">Competition</span> <span class="badge">CrossFit</span></div><div class="prgrid"><div class="pr"><small>Clean & Jerk</small><b>110kg</b></div><div class="pr"><small>Snatch</small><b>85kg</b></div><div class="pr"><small>HYROX</small><b>1:10</b></div></div><p class="muted">Focused on strength and race-day consistency.</p><button class="btn dark" onclick="openModal('profileModal')">Ver perfil</button> <button class="btn red admin-only hidden">Delete</button></div></article>
+      </div>
+    </section>
+
+    <section id="admin" class="content">
+      <div id="adminLocked" class="admin-box">
+        <h2 style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;margin-top:0">Admin access</h2>
+        <p class="muted">Prototype moderation area. Use passcode <b>ClubAdmin2026</b>.</p>
+        <div class="form" style="max-width:520px"><input id="pass" class="input" type="password" placeholder="Admin passcode"><button class="btn green" onclick="unlockAdmin()">Unlock admin tools</button></div>
+      </div>
+      <div id="adminOpen" class="hidden">
+        <div class="admin-box"><div class="section-head"><div><h2 style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;margin:0">Moderation tools</h2><p class="muted">Approve/reject pending submissions and delete public content.</p></div><button class="btn dark" onclick="lockAdmin()">Lock</button></div></div>
+        <div class="grid cards2" style="margin-top:16px">
+          <div class="pending"><h3>Pending events <span class="badge">2 pending</span></h3><div class="pending-item"><b>Open training session</b><br><span class="muted">Submitted by club member</span><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
+          <div class="pending"><h3>Pending PRs <span class="badge">4 pending</span></h3><div class="pending-item"><b>Member A · Clean & Jerk · 90kg</b><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
+          <div class="pending"><h3>Pending results <span class="badge">1 pending</span></h3><div class="pending-item"><b>HYROX Madrid</b><br><span class="muted">Includes uploaded photo</span><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
+          <div class="pending"><h3>Pending members <span class="badge">3 pending</span></h3><div class="pending-item"><b>New Member · Intermediate · HYROX</b><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Deloitte CrossFit HYROX Club · Madrid · Train hard. Progress together.</div>
+  </div>
+
+  <div id="signupModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Apuntarse a evento</h3><button class="close" onclick="closeModal('signupModal')">×</button></div><div class="form"><input class="input" placeholder="Tu nombre"><textarea class="input" placeholder="Nota opcional"></textarea><button class="btn green" onclick="closeModal('signupModal')">Confirmar inscripción</button></div></div></div>
+  <div id="eventModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Añadir evento</h3><button class="close" onclick="closeModal('eventModal')">×</button></div><div class="form"><input class="input" placeholder="Título"><input class="input" type="datetime-local"><input class="input" placeholder="Lugar"><textarea class="input" placeholder="Descripción"></textarea><input class="input" type="file" accept="image/*"><p class="notice">In the real web, non-admin submissions go to Admin Review before publishing.</p><button class="btn green" onclick="closeModal('eventModal')">Enviar a revisión</button></div></div></div>
+  <div id="prModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Añadir PR</h3><button class="close" onclick="closeModal('prModal')">×</button></div><div class="form"><input class="input" placeholder="Nombre"><select class="input"><option>Clean & Jerk</option><option>Snatch</option><option>Back Squat</option><option>Deadlift</option></select><input class="input" type="number" placeholder="Peso en kg"><button class="btn green" onclick="closeModal('prModal')">Enviar a revisión</button></div></div></div>
+  <div id="resultModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Añadir resultado</h3><button class="close" onclick="closeModal('resultModal')">×</button></div><div class="form"><input class="input" placeholder="Competición / evento"><input class="input" type="date"><input class="input" type="file" accept="image/*"><textarea class="input" placeholder="Resultado, posición, tiempo, highlights..."></textarea><input class="input" placeholder="Participantes"><button class="btn green" onclick="closeModal('resultModal')">Enviar a revisión</button></div></div></div>
+  <div id="memberModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Crear perfil</h3><button class="close" onclick="closeModal('memberModal')">×</button></div><div class="form"><input class="input" placeholder="Nombre"><select class="input"><option>Madrid</option><option>Barcelona</option><option>Remote</option></select><select class="input"><option>Intermediate</option><option>Beginner</option><option>Advanced</option><option>Competition</option></select><div class="notice">Focus: CrossFit · HYROX · DEKA · Weightlifting · Endurance</div><input class="input" placeholder="Clean & Jerk PR, e.g. 90kg"><input class="input" placeholder="Snatch PR, e.g. 70kg"><input class="input" placeholder="HYROX time, e.g. 1:18"><textarea class="input" placeholder="Short bio"></textarea><textarea class="input" placeholder="Next goal"></textarea><input class="input" type="file" accept="image/*"><button class="btn green" onclick="closeModal('memberModal')">Enviar a revisión</button></div></div></div>
+  <div id="profileModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Demo Athlete</h3><button class="close" onclick="closeModal('profileModal')">×</button></div><div class="actions"><span class="badge">Intermediate</span><span class="badge">HYROX</span><span class="badge">CrossFit</span></div><div class="prgrid" style="margin:18px 0"><div class="pr"><small>Clean & Jerk</small><b>90kg</b></div><div class="pr"><small>Snatch</small><b>70kg</b></div><div class="pr"><small>HYROX</small><b>1:18</b></div></div><h4 class="eyebrow">Bio</h4><p class="muted">Entrena para mejorar consistencia, competir en equipo y sumar puntos para el club.</p><h4 class="eyebrow">Next goal</h4><p class="muted">Bajar tiempo HYROX y mejorar Clean & Jerk / Snatch.</p></div></div>
+
+  <script>
+    const $ = (s, root=document) => root.querySelector(s);
+    const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+    $$('.tab').forEach(btn => btn.addEventListener('click', () => {
+      $$('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      $$('.content').forEach(c => c.classList.remove('active'));
+      $('#' + btn.dataset.tab).classList.add('active');
+    }));
+    function openModal(id){document.getElementById(id).style.display='flex'}
+    function closeModal(id){document.getElementById(id).style.display='none'}
+    function showEventView(view){$('#eventCards').classList.toggle('hidden',view!=='cards');$('#eventCalendar').classList.toggle('hidden',view!=='calendar')}
+    function unlockAdmin(){ if($('#pass').value==='ClubAdmin2026'){ $('#adminLocked').classList.add('hidden'); $('#adminOpen').classList.remove('hidden'); $$('.admin-only').forEach(x=>x.classList.remove('hidden')); } else alert('Incorrect passcode'); }
+    function lockAdmin(){ $('#adminLocked').classList.remove('hidden'); $('#adminOpen').classList.add('hidden'); $$('.admin-only').forEach(x=>x.classList.add('hidden')); }
+    function renderCountdowns(){
+      $$('.countdown').forEach(el=>{
+        const target = new Date(el.dataset.countdown || '2026-07-12T10:00:00').getTime();
+        const diff = target - Date.now();
+        if(diff<=0){el.innerHTML='<div class="badge">En juego</div>';return}
+        const vals=[Math.floor(diff/86400000),Math.floor(diff%86400000/3600000),Math.floor(diff%3600000/60000),Math.floor(diff%60000/1000)];
+        const labels=['D','H','M','S'];
+        el.innerHTML=vals.map((v,i)=>`<div class="timebox"><b>${String(v).padStart(2,'0')}</b><small>${labels[i]}</small></div>`).join('');
+      })
+    }
+    setInterval(renderCountdowns,1000); renderCountdowns();
+    function buildCalendar(){
+      const grid=$('#calendarGrid'); if(!grid)return;
+      ['L','M','X','J','V','S','D'].forEach(d=>grid.insertAdjacentHTML('beforeend',`<div class="cal-label">${d}</div>`));
+      const firstOffset=2; const days=31;
+      for(let i=0;i<firstOffset;i++) grid.insertAdjacentHTML('beforeend','<div class="cal-cell empty"></div>');
+      for(let d=1;d<=days;d++){
+        const events=[]; if(d===12)events.push('Entreno DEKA'); if(d===19)events.push('HYROX Team');
+        grid.insertAdjacentHTML('beforeend',`<div class="cal-cell"><div class="day">${d}</div>${events.map(e=>`<button class="event-chip" onclick="openModal('signupModal')">${e}</button>`).join('')}</div>`)
+      }
+    }
+    buildCalendar();
+  </script>
+</body>
+</html>
