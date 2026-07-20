@@ -28,77 +28,131 @@ La aplicación estará disponible en `http://localhost:8000`
 ├── routes/
 │   ├── _app.tsx           # Layout principal
 │   └── index.tsx          # Página home (principal)
-├── components/
-│   ├── Topbar.tsx         # Barra superior con branding
-│   ├── Hero.tsx           # Sección hero
-│   ├── Navigation.tsx      # Navegación de tabs
-│   ├── EventsSection.tsx   # Sección de eventos
-│   ├── LeaderboardSection.tsx  # Leaderboard de PRs
-│   ├── ResultsSection.tsx  # Resultados de competiciones
-│   ├── MembersSection.tsx  # Perfiles de miembros
-│   ├── AdminSection.tsx    # Panel de administración
-│   └── Footer.tsx         # Pie de página
-├── fresh.gen.ts           # Archivo generado automáticamente
+├── islands/               # Componentes interactivos
+│   ├── TabNavigation.tsx      # Navegación entre tabs
+│   ├── EventViewToggle.tsx    # Toggle cards/calendar
+│   ├── ModalManager.tsx       # Gestor de modales
+│   ├── CountdownTimer.tsx     # Timer para eventos
+│   ├── AdminPanel.tsx         # Panel de admin con auth
+│   ├── MembersFilter.tsx      # Filtros de miembros
+│   ├── Calendar.tsx           # Calendario interactivo
+│   └── ModalContainer.tsx     # Contenedor de modales
+├── components/                # Componentes estáticos
+│   ├── Topbar.tsx
+│   ├── Hero.tsx
+│   ├── Navigation.tsx
+│   ├── Footer.tsx
+│   └── ...
+├── fresh.gen.ts           # Archivo generado autom.
 ├── fresh.config.ts        # Configuración de Fresh
-├── main.ts                # Punto de entrada del servidor
-├── dev.ts                 # Servidor de desarrollo
-├── deno.json              # Configuración de Deno
+├── main.ts                # Punto de entrada servidor
+├── dev.ts                 # Servidor desarrollo
+├── deno.json              # Configuración Deno
 └── README.md              # Este archivo
 ```
 
-## ✨ Características Actuales
+## ✨ Características - Fase 1 ✅ COMPLETADA
 
-✅ **HTML Skeleton**: Estructura completa del UI en componentes Preact/TSX
-✅ **Estilos preservados**: Todo el CSS original mantenido
-✅ **Componentes modulares**: Cada sección como componente reutilizable
-✅ **Diseño responsivo**: Layouts mobile-first
-✅ **Tema oscuro**: Diseño Deloitte brand
+### Componentes Interactivos
+✅ **Navegación de Tabs** - Switch entre secciones (Eventos, Leaderboard, Resultados, Members, Admin)
+✅ **Event View Toggle** - Cambiar entre vista Cards y Calendar
+✅ **Countdown Timers** - Contadores en vivo para cada evento
+✅ **Calendario Dinámico** - Navegación mes a mes con eventos
+✅ **Admin Panel** - Sistema de autenticación con passcode
+✅ **Members Filter** - Filtrado por nombre, nivel y goal
+✅ **Modal Management** - Abrir/cerrar modales dinámicamente
+✅ **Estilos preservados** - Todo el CSS original funcionando
 
-## 🔜 Próximas fases
+### Funcionalidades
+- ✅ Tabs con estado reactivo
+- ✅ Modales para signup, crear evento, añadir PR, etc.
+- ✅ Contadores regresivos actualizados en tiempo real
+- ✅ Calendario con navegación
+- ✅ Filtros de miembros en vivo
+- ✅ Admin auth con passcode (ClubAdmin2026)
 
-### Fase 2: Lógica Interactiva (Frontend)
-- [ ] Navegación de tabs con state
-- [ ] Modal management (signup, create event, etc.)
-- [ ] Calendar rendering dinámico
-- [ ] Countdown timer para eventos
-- [ ] Filtros de miembros
-- [ ] Admin authentication
+## 🎯 Próximas Fases
 
-### Fase 3: Backend
+### Fase 2: Backend (Próximamente)
 - [ ] API routes en Deno
 - [ ] Base de datos (MongoDB o PostgreSQL)
-- [ ] Autenticación y autorización
-- [ ] CRUD para eventos, miembros, PRs, resultados
+- [ ] Autenticación real de usuarios
+- [ ] CRUD completo para:
+  - Eventos
+  - Miembros
+  - PRs
+  - Resultados
+- [ ] Sistema de validación de datos
 - [ ] Upload de imágenes
-- [ ] Admin panel
+- [ ] Admin panel con CRUD
+
+### Fase 3: Integración Final
+- [ ] Conectar frontend con API
+- [ ] Manejo de errores
+- [ ] Estados de carga
+- [ ] Notificaciones
+- [ ] Persistencia de datos
 
 ## 🛠️ Tecnologías
 
-- **Deno**: Runtime de JavaScript/TypeScript
-- **Fresh**: Framework web moderno (Preact + Islands)
-- **Preact**: Librería UI ligera
-- **TypeScript**: Type safety
+- **Deno** - Runtime seguro de JavaScript/TypeScript
+- **Fresh** - Framework web moderno (Preact + Islands Architecture)
+- **Preact** - Librería UI ligera (3KB)
+- **TypeScript** - Type safety y autocompletado
+- **hooks** - Manejo de estado local (useState, useEffect)
 
-## 📝 Notas
+## 📝 Islands Architecture
 
-- Este branch (`deno-fresh-migration`) es independiente del HTML original
-- El HTML original se mantiene en la rama `main`
-- Los estilos CSS se han integrado en los componentes por ahora
-- En fase posterior se moverán a archivos CSS separados si es necesario
+Este proyecto usa el patrón "Islands" de Fresh:
+- **Components** (`/components`) - HTML estático, sin interactividad
+- **Islands** (`/islands`) - Componentes Preact interactivos, enviados a cliente
+- **Routes** (`/routes`) - Páginas SSR
 
-## 👨‍💻 Desarrollo
+Beneficios:
+- JavaScript minimal en cliente
+- Mejor performance
+- SEO friendly
+- Carga progresiva
+
+## 🚀 Comandos
 
 ```bash
-# Ver cambios en tiempo real
-deno run -A --watch=components/,routes/ dev.ts
+# Desarrollo con hot reload
+deno run -A dev.ts
 
 # Build para producción
 deno run -A dev.ts build
 
 # Preview de producción
 deno run -A main.ts
+
+# Watch con archivos específicos
+deno run -A --watch=components/,islands/,routes/ dev.ts
 ```
+
+## 📖 Documentación
+
+- [Fresh Docs](https://fresh.deno.dev/)
+- [Preact Docs](https://preactjs.com/)
+- [Deno Manual](https://deno.land/manual)
+
+## 🤝 Notas de Desarrollo
+
+### Admin Passcode
+- **Usuario**: cualquiera
+- **Passcode**: `ClubAdmin2026`
+
+### Eventos de prueba
+- Entreno DEKA: 12 Jul 2026 10:00
+- HYROX Team Session: 19 Jul 2026 09:30
+
+### Miembros de prueba
+- Demo Athlete (Intermediate, CrossFit/HYROX)
+- Member B (Advanced, Strength training)
+- Member C (Beginner, HYROX prep)
 
 ---
 
-**Status**: 🟡 En progreso - Esqueleto HTML completado
+**Status**: 🟢 Fase 1 Completada | Fase 2 En Progreso
+
+**Última actualización**: 20 Jul 2026

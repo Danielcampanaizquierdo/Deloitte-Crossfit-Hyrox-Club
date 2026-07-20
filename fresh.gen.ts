@@ -5,13 +5,30 @@
 
 import * as $0 from "./routes/_app.tsx";
 import * as $1 from "./routes/index.tsx";
+import * as $2 from "./islands/TabNavigation.tsx";
+import * as $3 from "./islands/EventViewToggle.tsx";
+import * as $4 from "./islands/ModalManager.tsx";
+import * as $5 from "./islands/CountdownTimer.tsx";
+import * as $6 from "./islands/AdminPanel.tsx";
+import * as $7 from "./islands/MembersFilter.tsx";
+import * as $8 from "./islands/Calendar.tsx";
+import * as $9 from "./islands/ModalContainer.tsx";
 
 const manifest = {
   routes: {
     "./routes/_app.tsx": $0,
     "./routes/index.tsx": $1,
   },
-  islands: {},
+  islands: {
+    "./islands/TabNavigation.tsx": $2,
+    "./islands/EventViewToggle.tsx": $3,
+    "./islands/ModalManager.tsx": $4,
+    "./islands/CountdownTimer.tsx": $5,
+    "./islands/AdminPanel.tsx": $6,
+    "./islands/MembersFilter.tsx": $7,
+    "./islands/Calendar.tsx": $8,
+    "./islands/ModalContainer.tsx": $9,
+  },
   baseUrl: import.meta.url,
 };
 
