@@ -24,3 +24,6 @@ _fresh/
 # Build outputs
 /dist/
 /build/
+
+# Local data store (JSON files with user-generated content)
+data/
