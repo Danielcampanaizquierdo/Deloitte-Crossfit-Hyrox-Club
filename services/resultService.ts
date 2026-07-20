@@ -1,59 +1,35 @@
 import { CompetitionResult, CreateResultRequest, UpdateResultRequest } from "../types/Result.ts";
+import { storage } from "../lib/storage.ts";
 
-// In-memory database
-let results: CompetitionResult[] = [
-  {
-    id: "res-001",
-    title: "HYROX Madrid",
-    date: new Date("2026-06-20"),
-    description: "Great team performance, strong finishing times and amazing spirit throughout the competition.",
-    results: [
-      { position: 1, memberName: "Demo Athlete", time: "58:32" },
-      { position: 2, memberName: "Member B", time: "59:15" },
-      { position: 3, memberName: "Member C", time: "61:00" },
-    ],
-    approved: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "res-002",
-    title: "DEKA Event",
-    date: new Date("2026-05-10"),
-    description: "Internal challenge with strong team cohesion. Personal PRs achieved and future goals set.",
-    results: [
-      { position: 1, memberName: "Demo Athlete", score: "250 points" },
-      { position: 2, memberName: "Member B", score: "235 points" },
-    ],
-    approved: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+const STORAGE_FILE = "results.json";
 
 export const resultService = {
   // Get all results
   async getAll(): Promise<CompetitionResult[]> {
-    return results;
+    return await storage.read(STORAGE_FILE);
   },
 
   // Get approved results
   async getApproved(): Promise<CompetitionResult[]> {
+    const results = await this.getAll();
     return results.filter((r) => r.approved);
   },
 
   // Get pending results
   async getPending(): Promise<CompetitionResult[]> {
+    const results = await this.getAll();
     return results.filter((r) => !r.approved);
   },
 
   // Get result by ID
   async getById(id: string): Promise<CompetitionResult | null> {
+    const results = await this.getAll();
     return results.find((r) => r.id === id) || null;
   },
 
   // Create result
   async create(data: CreateResultRequest): Promise<CompetitionResult> {
+    const results = await this.getAll();
     const result: CompetitionResult = {
       id: `res-${Date.now()}`,
       ...data,
@@ -63,11 +39,13 @@ export const resultService = {
       updatedAt: new Date(),
     };
     results.push(result);
+    await storage.write(STORAGE_FILE, results);
     return result;
   },
 
   // Update result
   async update(id: string, data: UpdateResultRequest): Promise<CompetitionResult | null> {
+    const results = await this.getAll();
     const index = results.findIndex((r) => r.id === id);
     if (index === -1) return null;
 
@@ -78,14 +56,17 @@ export const resultService = {
       updatedAt: new Date(),
     };
     results[index] = updated;
+    await storage.write(STORAGE_FILE, results);
     return updated;
   },
 
   // Delete result
   async delete(id: string): Promise<boolean> {
+    const results = await this.getAll();
     const index = results.findIndex((r) => r.id === id);
     if (index === -1) return false;
     results.splice(index, 1);
+    await storage.write(STORAGE_FILE, results);
     return true;
   },
 

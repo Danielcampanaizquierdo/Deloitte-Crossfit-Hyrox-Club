@@ -1,50 +1,32 @@
 import { Event, CreateEventRequest, UpdateEventRequest } from "../types/Event.ts";
+import { storage } from "../lib/storage.ts";
 
-// In-memory database (will be replaced with real DB later)
-let events: Event[] = [
-  {
-    id: "evt-001",
-    title: "Entreno DEKA",
-    description: "Formato DEKA para preparar competición, compartir ritmos y representar al club juntos.",
-    date: new Date("2026-07-12T10:00:00"),
-    location: "GreenHorse Box, San Sebastián de los Reyes",
-    attendees: 8,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "evt-002",
-    title: "HYROX Team Session",
-    description: "Team workout focused on sleds, wall balls and running transitions.",
-    date: new Date("2026-07-19T09:30:00"),
-    location: "Madrid",
-    attendees: 12,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+const STORAGE_FILE = "events.json";
 
 export const eventService = {
   // Get all events
   async getAll(): Promise<Event[]> {
-    return events;
+    return await storage.read(STORAGE_FILE);
   },
 
   // Get event by ID
   async getById(id: string): Promise<Event | null> {
+    const events = await this.getAll();
     return events.find((e) => e.id === id) || null;
   },
 
   // Get upcoming events
   async getUpcoming(): Promise<Event[]> {
     const now = new Date();
+    const events = await this.getAll();
     return events
-      .filter((e) => e.date > now)
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
+      .filter((e) => new Date(e.date) > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   },
 
   // Create event
   async create(data: CreateEventRequest): Promise<Event> {
+    const events = await this.getAll();
     const event: Event = {
       id: `evt-${Date.now()}`,
       ...data,
@@ -54,11 +36,13 @@ export const eventService = {
       updatedAt: new Date(),
     };
     events.push(event);
+    await storage.write(STORAGE_FILE, events);
     return event;
   },
 
   // Update event
   async update(id: string, data: UpdateEventRequest): Promise<Event | null> {
+    const events = await this.getAll();
     const index = events.findIndex((e) => e.id === id);
     if (index === -1) return null;
 
@@ -69,14 +53,17 @@ export const eventService = {
       updatedAt: new Date(),
     };
     events[index] = updated;
+    await storage.write(STORAGE_FILE, events);
     return updated;
   },
 
   // Delete event
   async delete(id: string): Promise<boolean> {
+    const events = await this.getAll();
     const index = events.findIndex((e) => e.id === id);
     if (index === -1) return false;
     events.splice(index, 1);
+    await storage.write(STORAGE_FILE, events);
     return true;
   },
 
@@ -86,6 +73,6 @@ export const eventService = {
     if (!event) return null;
     event.attendees++;
     event.updatedAt = new Date();
-    return event;
+    return await this.update(id, event);
   },
 };

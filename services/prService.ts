@@ -1,59 +1,42 @@
 import { PR, CreatePRRequest, UpdatePRRequest } from "../types/PR.ts";
+import { storage } from "../lib/storage.ts";
+import { memberService } from "./memberService.ts";
 
-// In-memory database
-let prs: PR[] = [
-  {
-    id: "pr-001",
-    memberId: "mbr-001",
-    memberName: "Demo Athlete",
-    movement: "clean_and_jerk",
-    weight: 140,
-    date: new Date("2026-06-15"),
-    approved: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "pr-002",
-    memberId: "mbr-002",
-    memberName: "Member B",
-    movement: "snatch",
-    weight: 100,
-    date: new Date("2026-06-10"),
-    approved: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+const STORAGE_FILE = "prs.json";
 
 export const prService = {
   // Get all PRs
   async getAll(): Promise<PR[]> {
-    return prs;
+    return await storage.read(STORAGE_FILE);
   },
 
   // Get approved PRs only
   async getApproved(): Promise<PR[]> {
+    const prs = await this.getAll();
     return prs.filter((p) => p.approved);
   },
 
   // Get pending PRs
   async getPending(): Promise<PR[]> {
+    const prs = await this.getAll();
     return prs.filter((p) => !p.approved);
   },
 
   // Get PR by ID
   async getById(id: string): Promise<PR | null> {
+    const prs = await this.getAll();
     return prs.find((p) => p.id === id) || null;
   },
 
   // Get PRs by member
   async getByMemberId(memberId: string): Promise<PR[]> {
+    const prs = await this.getAll();
     return prs.filter((p) => p.memberId === memberId);
   },
 
   // Get PRs by movement
   async getByMovement(movement: string): Promise<PR[]> {
+    const prs = await this.getAll();
     return prs.filter((p) => p.movement === movement && p.approved);
   },
 
@@ -69,11 +52,10 @@ export const prService = {
 
   // Create PR
   async create(data: CreatePRRequest): Promise<PR> {
-    const member = await (await import("./memberService.ts")).memberService.getById(
-      data.memberId
-    );
+    const member = await memberService.getById(data.memberId);
     if (!member) throw new Error("Member not found");
 
+    const prs = await this.getAll();
     const pr: PR = {
       id: `pr-${Date.now()}`,
       ...data,
@@ -84,11 +66,13 @@ export const prService = {
       updatedAt: new Date(),
     };
     prs.push(pr);
+    await storage.write(STORAGE_FILE, prs);
     return pr;
   },
 
   // Update PR
   async update(id: string, data: UpdatePRRequest): Promise<PR | null> {
+    const prs = await this.getAll();
     const index = prs.findIndex((p) => p.id === id);
     if (index === -1) return null;
 
@@ -99,14 +83,17 @@ export const prService = {
       updatedAt: new Date(),
     };
     prs[index] = updated;
+    await storage.write(STORAGE_FILE, prs);
     return updated;
   },
 
   // Delete PR
   async delete(id: string): Promise<boolean> {
+    const prs = await this.getAll();
     const index = prs.findIndex((p) => p.id === id);
     if (index === -1) return false;
     prs.splice(index, 1);
+    await storage.write(STORAGE_FILE, prs);
     return true;
   },
 
