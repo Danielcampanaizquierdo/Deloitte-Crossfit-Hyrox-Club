@@ -1,6 +1,6 @@
 # Deloitte CrossFit HYROX Club - Deno Fresh Migration
 
-Conversión de la página web estática HTML a una aplicación web moderna usando Deno Fresh.
+Conversión de la página web estática HTML a una aplicación web moderna usando Deno Fresh con backend API completo.
 
 ## 🚀 Quick Start
 
@@ -26,133 +26,372 @@ La aplicación estará disponible en `http://localhost:8000`
 ```
 .
 ├── routes/
-│   ├── _app.tsx           # Layout principal
-│   └── index.tsx          # Página home (principal)
-├── islands/               # Componentes interactivos
-│   ├── TabNavigation.tsx      # Navegación entre tabs
-│   ├── EventViewToggle.tsx    # Toggle cards/calendar
-│   ├── ModalManager.tsx       # Gestor de modales
-│   ├── CountdownTimer.tsx     # Timer para eventos
-│   ├── AdminPanel.tsx         # Panel de admin con auth
-│   ├── MembersFilter.tsx      # Filtros de miembros
-│   ├── Calendar.tsx           # Calendario interactivo
-│   └── ModalContainer.tsx     # Contenedor de modales
-├── components/                # Componentes estáticos
-│   ├── Topbar.tsx
-│   ├── Hero.tsx
-│   ├── Navigation.tsx
-│   ├── Footer.tsx
-│   └── ...
-├── fresh.gen.ts           # Archivo generado autom.
-├── fresh.config.ts        # Configuración de Fresh
-├── main.ts                # Punto de entrada servidor
-├── dev.ts                 # Servidor desarrollo
-├── deno.json              # Configuración Deno
-└── README.md              # Este archivo
+│   ├── _app.tsx                    # Layout principal
+│   ├── index.tsx                   # Página home
+│   └── api/                        # API routes
+│       ├── events/
+│       │   ├── index.ts            # GET/POST eventos
+│       │   ├── [id].ts             # GET/PUT/DELETE evento
+│       │   ├── upcoming.ts         # GET próximos eventos
+│       │   └── ...
+│       ├── members/
+│       ├── prs/
+│       ├── results/
+│       ├── signups/
+│       └── admin/
+├── islands/                        # Componentes interactivos
+│   ├── TabNavigation.tsx           # Navegación
+│   ├── EventViewToggle.tsx         # Toggle vista
+│   ├── CountdownTimer.tsx          # Timer
+│   ├── Calendar.tsx                # Calendario
+│   ├── AdminPanel.tsx              # Admin auth
+│   ├── MembersFilter.tsx           # Filtros
+│   ├── EventFormModal.tsx          # Crear evento
+│   ├── MemberFormModal.tsx         # Crear miembro
+│   ├── SignupFormModal.tsx         # Apuntarse
+│   ├── PRFormModal.tsx             # Añadir PR
+│   ├── ResultFormModal.tsx         # Añadir resultado
+│   └── PendingApprovalManager.tsx  # Aprobar items
+├── components/                     # Componentes estáticos
+├── services/                       # Lógica de negocio
+│   ├── eventService.ts
+│   ├── memberService.ts
+│   ├── prService.ts
+│   ├── resultService.ts
+│   └── signupService.ts
+├── types/                          # Type definitions
+│   ├── Event.ts
+│   ├── Member.ts
+│   ├── PR.ts
+│   ├── Result.ts
+│   └── Signup.ts
+├── lib/
+│   └── api.ts                      # Cliente HTTP
+├── fresh.gen.ts                    # Auto-generated
+├── fresh.config.ts                 # Configuración
+├── main.ts                         # Servidor prod
+├── dev.ts                          # Servidor dev
+├── deno.json                       # Config Deno
+└── README.md
 ```
 
-## ✨ Características - Fase 1 ✅ COMPLETADA
+## ✨ Características - Fase 2 ✅ COMPLETADA
 
-### Componentes Interactivos
-✅ **Navegación de Tabs** - Switch entre secciones (Eventos, Leaderboard, Resultados, Members, Admin)
-✅ **Event View Toggle** - Cambiar entre vista Cards y Calendar
-✅ **Countdown Timers** - Contadores en vivo para cada evento
-✅ **Calendario Dinámico** - Navegación mes a mes con eventos
-✅ **Admin Panel** - Sistema de autenticación con passcode
-✅ **Members Filter** - Filtrado por nombre, nivel y goal
-✅ **Modal Management** - Abrir/cerrar modales dinámicamente
-✅ **Estilos preservados** - Todo el CSS original funcionando
+### Backend API
 
-### Funcionalidades
-- ✅ Tabs con estado reactivo
-- ✅ Modales para signup, crear evento, añadir PR, etc.
-- ✅ Contadores regresivos actualizados en tiempo real
-- ✅ Calendario con navegación
-- ✅ Filtros de miembros en vivo
-- ✅ Admin auth con passcode (ClubAdmin2026)
+#### Events API
+- `GET /api/events` - Obtener todos los eventos
+- `GET /api/events/upcoming` - Próximos eventos
+- `GET /api/events/[id]` - Detalle del evento
+- `POST /api/events` - Crear evento
+- `PUT /api/events/[id]` - Actualizar evento
+- `DELETE /api/events/[id]` - Eliminar evento
 
-## 🎯 Próximas Fases
+#### Members API
+- `GET /api/members` - Miembros aprobados (con búsqueda/filtros)
+- `GET /api/members/[id]` - Detalle del miembro
+- `GET /api/members/pending` - Miembros pendientes (admin)
+- `POST /api/members` - Crear miembro
+- `PUT /api/members/[id]` - Actualizar miembro
+- `DELETE /api/members/[id]` - Eliminar miembro
 
-### Fase 2: Backend (Próximamente)
-- [ ] API routes en Deno
-- [ ] Base de datos (MongoDB o PostgreSQL)
-- [ ] Autenticación real de usuarios
-- [ ] CRUD completo para:
-  - Eventos
-  - Miembros
-  - PRs
-  - Resultados
-- [ ] Sistema de validación de datos
-- [ ] Upload de imágenes
-- [ ] Admin panel con CRUD
+#### PRs API
+- `GET /api/prs` - PRs aprobados (con filtros por movimiento)
+- `GET /api/prs/[id]` - Detalle del PR
+- `GET /api/prs/pending` - PRs pendientes (admin)
+- `POST /api/prs` - Crear PR
+- `DELETE /api/prs/[id]` - Eliminar PR
 
-### Fase 3: Integración Final
-- [ ] Conectar frontend con API
-- [ ] Manejo de errores
-- [ ] Estados de carga
-- [ ] Notificaciones
-- [ ] Persistencia de datos
+#### Results API
+- `GET /api/results` - Resultados aprobados
+- `GET /api/results/[id]` - Detalle del resultado
+- `GET /api/results/pending` - Resultados pendientes (admin)
+- `POST /api/results` - Crear resultado
+- `DELETE /api/results/[id]` - Eliminar resultado
+
+#### Signups API
+- `GET /api/signups` - Todos los signups (con filtro por evento)
+- `GET /api/signups/[id]` - Detalle del signup
+- `POST /api/signups` - Crear signup (apuntarse)
+- `DELETE /api/signups/[id]` - Cancelar signup
+
+#### Admin API
+- `POST /api/admin/members/[id]/approve` - Aprobar miembro
+- `POST /api/admin/prs/[id]/approve` - Aprobar PR
+- `POST /api/admin/results/[id]/approve` - Aprobar resultado
+
+### Services (Lógica de negocio)
+
+- **eventService** - CRUD de eventos + getUpcoming
+- **memberService** - CRUD de miembros + search + approve/reject
+- **prService** - CRUD de PRs + getByMovement + approve
+- **resultService** - CRUD de resultados + approve
+- **signupService** - CRUD de signups + checkDuplicates
+
+### Frontend Integration
+
+✅ **Formularios funcionales**
+- EventFormModal - Crear eventos con API
+- MemberFormModal - Crear miembros con API
+- SignupFormModal - Apuntarse a eventos
+- PRFormModal - Añadir PRs
+- ResultFormModal - Registrar resultados
+
+✅ **Admin Panel**
+- Aprobar/rechazar miembros pendientes
+- Aprobar/rechazar PRs
+- Aprobar/rechazar resultados
+- Sistema de autenticación con passcode
+
+✅ **Cliente HTTP**
+- `api.get()` - Peticiones GET
+- `api.post()` - Peticiones POST
+- `api.put()` - Peticiones PUT
+- `api.delete()` - Peticiones DELETE
+- Manejo automático de errores
+
+## 📊 Data Models
+
+### Event
+```typescript
+{
+  id: string;
+  title: string;
+  description: string;
+  date: Date;
+  location: string;
+  attendees: number;
+  image?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Member
+```typescript
+{
+  id: string;
+  name: string;
+  email: string;
+  level: "beginner" | "intermediate" | "advanced";
+  goal: "crossfit" | "hyrox" | "general";
+  location: string;
+  avatar?: string;
+  bio?: string;
+  joinedAt: Date;
+  approved: boolean; // Admin approval
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### PR (Personal Record)
+```typescript
+{
+  id: string;
+  memberId: string;
+  memberName: string;
+  movement: "clean_and_jerk" | "snatch" | "deadlift" | ...;
+  weight: number; // en kg
+  date: Date;
+  approved: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### CompetitionResult
+```typescript
+{
+  id: string;
+  title: string;
+  date: Date;
+  description: string;
+  image?: string;
+  results: {
+    position: number;
+    memberName: string;
+    score?: string;
+    time?: string;
+  }[];
+  approved: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### EventSignup
+```typescript
+{
+  id: string;
+  eventId: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  notes?: string;
+  signedUpAt: Date;
+}
+```
+
+## 🔄 Workflow
+
+### Crear Evento
+1. User rellena formulario en modal
+2. `EventFormModal` hace POST a `/api/events`
+3. `eventService.create()` procesa los datos
+4. Evento se guarda en BD
+5. Página se recarga con el nuevo evento
+
+### Apuntarse a Evento
+1. User rellena formulario de signup
+2. `SignupFormModal` hace POST a `/api/signups`
+3. `signupService.create()` valida no duplicados
+4. Se incrementa contador de attendees del evento
+5. Confirmación visual
+
+### Admin Approving
+1. Admin ve items pendientes en sección Admin
+2. Click en "Approve" → POST `/api/admin/{type}/{id}/approve`
+3. Service marca item como `approved: true`
+4. Item aparece en listado público
+
+## 🧪 Testing la API
+
+```bash
+# Get all events
+curl http://localhost:8000/api/events
+
+# Get upcoming events
+curl http://localhost:8000/api/events/upcoming
+
+# Get approved members
+curl http://localhost:8000/api/members
+
+# Search members
+curl "http://localhost:8000/api/members?search=demo&level=intermediate"
+
+# Get PRs by movement
+curl "http://localhost:8000/api/prs?movement=clean_and_jerk"
+
+# Create event
+curl -X POST http://localhost:8000/api/events \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "New Event",
+    "description": "Description",
+    "date": "2026-08-01T18:00:00",
+    "location": "Madrid"
+  }'
+
+# Create member
+curl -X POST http://localhost:8000/api/members \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "level": "beginner",
+    "goal": "hyrox",
+    "location": "Madrid"
+  }'
+
+# Create signup
+curl -X POST http://localhost:8000/api/signups \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventId": "evt-001",
+    "memberName": "Demo",
+    "memberEmail": "demo@example.com"
+  }'
+```
+
+## 🔐 Admin Features
+
+- **Passcode**: `ClubAdmin2026`
+- **Pending Approvals**:
+  - Members pendientes de aprobar
+  - PRs pendientes
+  - Results pendientes
+  - Events pendientes
+- **Moderation Tools**:
+  - Approve/Reject members
+  - Approve/Reject PRs
+  - Approve/Reject results
+  - View all submissions
 
 ## 🛠️ Tecnologías
 
-- **Deno** - Runtime seguro de JavaScript/TypeScript
-- **Fresh** - Framework web moderno (Preact + Islands Architecture)
-- **Preact** - Librería UI ligera (3KB)
-- **TypeScript** - Type safety y autocompletado
-- **hooks** - Manejo de estado local (useState, useEffect)
+- **Deno** - Secure runtime
+- **Fresh** - SSR + Islands
+- **Preact** - Lightweight UI library
+- **TypeScript** - Type safety
+- **In-memory storage** - Fase 2 (será reemplazado con DB)
 
-## 📝 Islands Architecture
+## 📈 Próximas Fases
 
-Este proyecto usa el patrón "Islands" de Fresh:
-- **Components** (`/components`) - HTML estático, sin interactividad
-- **Islands** (`/islands`) - Componentes Preact interactivos, enviados a cliente
-- **Routes** (`/routes`) - Páginas SSR
+### Fase 3: Database Integration
+- [ ] PostgreSQL o MongoDB
+- [ ] Connection pooling
+- [ ] Migrations
+- [ ] Reemplazar in-memory con queries reales
 
-Beneficios:
-- JavaScript minimal en cliente
-- Mejor performance
-- SEO friendly
-- Carga progresiva
+### Fase 4: Authentication
+- [ ] User login/register
+- [ ] JWT tokens
+- [ ] Role-based access (user, admin)
+- [ ] Session management
 
-## 🚀 Comandos
+### Fase 5: File Upload
+- [ ] Image upload para eventos
+- [ ] Image upload para results
+- [ ] Avatar upload para miembros
+- [ ] AWS S3 o similar
 
-```bash
-# Desarrollo con hot reload
-deno run -A dev.ts
+### Fase 6: Advanced Features
+- [ ] Email notifications
+- [ ] Leaderboard rankings
+- [ ] Statistics dashboard
+- [ ] Export reports
+- [ ] Dark/Light mode toggle
 
-# Build para producción
-deno run -A dev.ts build
+## 📝 Datos de Prueba
 
-# Preview de producción
-deno run -A main.ts
-
-# Watch con archivos específicos
-deno run -A --watch=components/,islands/,routes/ dev.ts
-```
-
-## 📖 Documentación
-
-- [Fresh Docs](https://fresh.deno.dev/)
-- [Preact Docs](https://preactjs.com/)
-- [Deno Manual](https://deno.land/manual)
-
-## 🤝 Notas de Desarrollo
-
-### Admin Passcode
-- **Usuario**: cualquiera
-- **Passcode**: `ClubAdmin2026`
-
-### Eventos de prueba
-- Entreno DEKA: 12 Jul 2026 10:00
-- HYROX Team Session: 19 Jul 2026 09:30
+### Admin
+- **Passcode**: ClubAdmin2026
 
 ### Miembros de prueba
-- Demo Athlete (Intermediate, CrossFit/HYROX)
-- Member B (Advanced, Strength training)
-- Member C (Beginner, HYROX prep)
+- Demo Athlete (Intermediate, CrossFit/HYROX) - APPROVED
+- Member B (Advanced, Strength) - APPROVED
+- Member C (Beginner, HYROX) - PENDING
+
+### Eventos de prueba
+- Entreno DEKA - 12 Jul 2026 10:00
+- HYROX Team Session - 19 Jul 2026 09:30
+
+## 🐛 Debugging
+
+```bash
+# Ver logs del servidor
+# Los logs aparecen en la terminal donde ejecutaste `deno run -A dev.ts`
+
+# Habilitar verbose logging
+DENO_LOG=debug deno run -A dev.ts
+```
+
+## 📚 Documentación de APIs
+
+Ver [API_DOCS.md](./API_DOCS.md) para documentación detallada de endpoints.
+
+## 🤝 Contribuir
+
+1. Create a branch: `git checkout -b feature/nombre`
+2. Commit changes: `git commit -m 'Add feature'`
+3. Push: `git push origin feature/nombre`
+4. Open PR
 
 ---
 
-**Status**: 🟢 Fase 1 Completada | Fase 2 En Progreso
+**Status**: 🟢 Fase 2 Completada | Backend API Funcional
 
 **Última actualización**: 20 Jul 2026
+
+**Próximo**: Fase 3 - Database Integration
