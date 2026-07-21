@@ -30,6 +30,66 @@ Deno.test("member repository reserves normalized emails atomically", async () =>
   });
 });
 
+Deno.test("member update rejects an email change onto an email already taken by another member", async () => {
+  await withKv(async (kv) => {
+    const repo = createMemberRepository(kv);
+    const first = await repo.create({
+      name: "First Member",
+      email: "first@example.com",
+      level: "beginner",
+      goal: "crossfit",
+      location: "City",
+    });
+    const second = await repo.create({
+      name: "Second Member",
+      email: "second@example.com",
+      level: "intermediate",
+      goal: "hyrox",
+      location: "City",
+    });
+
+    await assertRejects(
+      () => repo.update(first.id, { email: second.email }),
+      DuplicateMemberEmailError,
+    );
+
+    // First member's original email index and record must be unchanged.
+    const stillFirst = await repo.getByEmail("first@example.com");
+    assert(stillFirst);
+    assertEquals(stillFirst?.id, first.id);
+    assertEquals(stillFirst?.email, first.email);
+
+    const stillSecond = await repo.getByEmail("second@example.com");
+    assert(stillSecond);
+    assertEquals(stillSecond?.id, second.id);
+  });
+});
+
+Deno.test("member update successfully changes email to a free address", async () => {
+  await withKv(async (kv) => {
+    const repo = createMemberRepository(kv);
+    const member = await repo.create({
+      name: "Changing Member",
+      email: "old@example.com",
+      level: "beginner",
+      goal: "crossfit",
+      location: "City",
+    });
+
+    const updated = await repo.update(member.id, {
+      email: "new@example.com",
+    });
+    assert(updated);
+    assertEquals(updated?.email, "new@example.com");
+
+    assertEquals(await repo.getByEmail("old@example.com"), null);
+    const byNewEmail = await repo.getByEmail("new@example.com");
+    assert(byNewEmail);
+    assertEquals(byNewEmail?.id, member.id);
+    assertEquals(byNewEmail?.email, "new@example.com");
+  });
+});
+
 Deno.test("member approval moves the member between approval indexes", async () => {
   await withKv(async (kv) => {
     const repo = createMemberRepository(kv);

@@ -117,7 +117,9 @@ export function createMemberRepository(kv: Deno.Kv): MemberRepository {
     };
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const primary = await kv.get<Member>(memberKey(id));
       const res = await kv.atomic()
+        .check(primary)
         .check({ key: memberEmailKey(normalizedEmail), versionstamp: null })
         .set(memberKey(id), member)
         .set(memberApprovalKey(member.approved, id), id)
