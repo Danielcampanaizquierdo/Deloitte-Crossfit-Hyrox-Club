@@ -1,4 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsx h */
+/** @jsxFrag Fragment */
+import { h, Fragment } from "preact";
 export default function AdminSection() {
   return (
     <section id="admin" class="content">

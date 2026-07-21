@@ -1,4 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsx h */
+/** @jsxFrag Fragment */
+import { h, Fragment } from "preact";
 export default function EventsSection() {
   return (
     <section id="events" class="content active">

@@ -1,4 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsx h */
+/** @jsxFrag Fragment */
+import { h, Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 interface CountdownTimerProps {

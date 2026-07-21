@@ -1,4 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsx h */
+/** @jsxFrag Fragment */
+import { h, Fragment } from "preact";
 import { useState } from "preact/hooks";
 
 type LevelType = "all" | "beginner" | "intermediate" | "advanced";

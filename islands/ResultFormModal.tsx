@@ -1,4 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsx h */
+/** @jsxFrag Fragment */
+import { h, Fragment } from "preact";
 import { useState } from "preact/hooks";
 import { api } from "../lib/api.ts";
 import { Event } from "../types/Event.ts";
