@@ -74,6 +74,21 @@ export async function verifyPassword(
   }
 }
 
+/** Compares application secrets without leaking their original length or an
+ * early differing character through the comparison loop. */
+export async function secretsEqual(a: string, b: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [aDigest, bDigest] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(a)),
+    crypto.subtle.digest("SHA-256", encoder.encode(b)),
+  ]);
+  const left = new Uint8Array(aDigest);
+  const right = new Uint8Array(bDigest);
+  let diff = 0;
+  for (let i = 0; i < left.length; i++) diff |= left[i] ^ right[i];
+  return diff === 0;
+}
+
 /** Returns an error message when the password is unusable, or null when it is
  * acceptable. */
 export function validatePassword(password: string): string | null {

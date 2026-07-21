@@ -252,6 +252,8 @@ Deno.test("signupService: create throws 'Already signed up' message on duplicate
       location: "Gym",
       description: "Desc",
     });
+    // Bookings require a published event.
+    await eventRepo.update(event.id, { approved: true });
 
     await service.create({
       eventId: event.id,
@@ -283,6 +285,8 @@ Deno.test("signupService: isSignedUp is an exact (case-sensitive) match", async 
       location: "Gym",
       description: "Desc",
     });
+    // Bookings require a published event.
+    await eventRepo.update(event.id, { approved: true });
 
     await service.create({
       eventId: event.id,
@@ -308,6 +312,8 @@ Deno.test("signupService: getAll lists all signups (repository list() extension)
       location: "Gym",
       description: "Desc",
     });
+    // Bookings require a published event.
+    await eventRepo.update(event.id, { approved: true });
 
     await service.create({
       eventId: event.id,
@@ -336,6 +342,8 @@ Deno.test("signupService: a successful signup changes the event's attendees by e
       location: "Gym",
       description: "Desc",
     });
+    // Bookings require a published event.
+    await eventRepo.update(event.id, { approved: true });
     assertEquals(event.attendees, 0);
 
     await service.create({
@@ -365,6 +373,8 @@ Deno.test("signupService: countByEvent counts signups for the event", async () =
       location: "Gym",
       description: "Desc",
     });
+    // Bookings require a published event.
+    await eventRepo.update(event.id, { approved: true });
 
     assertEquals(await service.countByEvent(event.id), 0);
 

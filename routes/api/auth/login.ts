@@ -5,6 +5,13 @@ import { createMemberSession } from "../../../lib/session.ts";
 import { toPublicMember } from "../../../types/Member.ts";
 import { State } from "../../../types/State.ts";
 
+const DUMMY_PASSWORD_RECORD = {
+  hash: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+  salt: "AAAAAAAAAAAAAAAAAAAAAA==",
+};
+
+const privateHeaders = { "Cache-Control": "no-store" };
+
 export const handler: Handlers<unknown, State> = {
   async POST(req, _ctx) {
     let body: Record<string, string>;
@@ -14,11 +21,14 @@ export const handler: Handlers<unknown, State> = {
       return Response.json({ error: "JSON inválido" }, { status: 400 });
     }
 
-    const { email, password } = body;
-    if (!email || !password) {
+    const email = typeof body.email === "string"
+      ? body.email.trim().toLowerCase()
+      : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    if (!email || !password || email.length > 254 || password.length > 200) {
       return Response.json(
         { error: "Email y contraseña requeridos" },
-        { status: 400 },
+        { status: 400, headers: privateHeaders },
       );
     }
 
@@ -27,22 +37,22 @@ export const handler: Handlers<unknown, State> = {
     // Always run the verification, even when the email is unknown, so a
     // missing account and a wrong password take the same time and return the
     // same message. Otherwise this endpoint reveals which emails are members.
-    const valid = await verifyPassword(password, {
-      hash: member?.passwordHash,
-      salt: member?.passwordSalt,
-    });
+    const record = member?.passwordHash && member.passwordSalt
+      ? { hash: member.passwordHash, salt: member.passwordSalt }
+      : DUMMY_PASSWORD_RECORD;
+    const valid = await verifyPassword(password, record);
 
     if (!member || !valid) {
       return Response.json(
         { error: "Email o contraseña incorrectos" },
-        { status: 401 },
+        { status: 401, headers: privateHeaders },
       );
     }
 
     if (!member.approved) {
       return Response.json(
         { error: "Tu cuenta todavía está pendiente de aprobación" },
-        { status: 403 },
+        { status: 403, headers: privateHeaders },
       );
     }
 
@@ -52,7 +62,12 @@ export const handler: Handlers<unknown, State> = {
     try {
       return Response.json(
         { member: toPublicMember(member) },
-        { headers: { "set-cookie": await createMemberSession(member.id) } },
+      {
+        headers: {
+          ...privateHeaders,
+          "set-cookie": await createMemberSession(member.id),
+        },
+      },
       );
     } catch (err) {
       console.error("member login: could not create session", err);

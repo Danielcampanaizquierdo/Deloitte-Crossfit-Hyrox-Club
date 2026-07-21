@@ -33,6 +33,9 @@ Deno.test("only one simultaneous signup per event and email commits", async () =
       location: "Gym",
       description: "Weekly session",
     });
+    // Bookings require a published event; these tests exercise capacity
+    // and duplicate rules, not moderation.
+    await events.update(event.id, { approved: true });
 
     const attempt = () =>
       signups.create({
@@ -72,6 +75,9 @@ Deno.test("cancelling a signup deletes indexes and decrements attendees", async 
       location: "Gym",
       description: "Weekly session",
     });
+    // Bookings require a published event; these tests exercise capacity
+    // and duplicate rules, not moderation.
+    await events.update(event.id, { approved: true });
 
     const signup = await signups.create({
       eventId: event.id,
@@ -119,6 +125,9 @@ Deno.test("booking is refused once an event reaches its capacity", async () => {
       description: "Two spots only",
       capacity: 2,
     });
+    // Bookings require a published event; these tests exercise capacity
+    // and duplicate rules, not moderation.
+    await events.update(event.id, { approved: true });
 
     await signups.create({
       eventId: event.id,
@@ -158,6 +167,9 @@ Deno.test("two athletes racing for the last spot cannot both book it", async () 
       description: "Single spot",
       capacity: 1,
     });
+    // Bookings require a published event; these tests exercise capacity
+    // and duplicate rules, not moderation.
+    await events.update(event.id, { approved: true });
 
     const results = await Promise.allSettled([
       signups.create({
@@ -193,6 +205,9 @@ Deno.test("an uncapped event keeps accepting bookings", async () => {
       location: "Gym",
       description: "Everyone welcome",
     });
+    // Bookings require a published event; these tests exercise capacity
+    // and duplicate rules, not moderation.
+    await events.update(event.id, { approved: true });
 
     for (const n of [1, 2, 3, 4, 5]) {
       const signup = await signups.create({
@@ -220,6 +235,9 @@ Deno.test("cancelling frees a spot on a full event", async () => {
       description: "One spot",
       capacity: 1,
     });
+    // Bookings require a published event; these tests exercise capacity
+    // and duplicate rules, not moderation.
+    await events.update(event.id, { approved: true });
 
     const first = await signups.create({
       eventId: event.id,
@@ -260,6 +278,9 @@ Deno.test("an athlete finds their own booking by event and email", async () => {
       location: "Gym",
       description: "Weekly session",
     });
+    // Bookings require a published event; these tests exercise capacity
+    // and duplicate rules, not moderation.
+    await events.update(event.id, { approved: true });
 
     const signup = await signups.create({
       eventId: event.id,

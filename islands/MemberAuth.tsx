@@ -22,13 +22,21 @@ interface Props {
  * duplicating them. */
 export default function MemberAuth({ member }: Props) {
   const [mode, setMode] = useState<"login" | "register" | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => on(OPEN_LOGIN, () => setMode("login")), []);
   useEffect(() => on(OPEN_JOIN, () => setMode("register")), []);
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    globalThis.location.reload();
+    setLoggingOut(true);
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("logout failed");
+      globalThis.location.reload();
+    } catch {
+      toast("No se pudo cerrar la sesión. Inténtalo de nuevo.", "error");
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -43,8 +51,13 @@ export default function MemberAuth({ member }: Props) {
                 </span>
                 <span>{member.name}</span>
               </span>
-              <button type="button" class="btn ghost btn-sm" onClick={logout}>
-                Salir
+              <button
+                type="button"
+                class="btn ghost btn-sm"
+                onClick={logout}
+                disabled={loggingOut}
+              >
+                {loggingOut ? "Saliendo…" : "Salir"}
               </button>
             </Fragment>
           )
@@ -169,6 +182,7 @@ function RegisterModal(
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [level, setLevel] = useState("beginner");
   const [goal, setGoal] = useState("crossfit");
   const [location, setLocation] = useState("Madrid");
@@ -179,6 +193,10 @@ function RegisterModal(
     e.preventDefault();
     if (password.length < 8) {
       toast("La contraseña debe tener al menos 8 caracteres.", "error");
+      return;
+    }
+    if (password !== passwordConfirmation) {
+      toast("Las contraseñas no coinciden.", "error");
       return;
     }
     setLoading(true);
@@ -256,6 +274,20 @@ function RegisterModal(
             placeholder="Mínimo 8 caracteres"
             value={password}
             onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label class="field">
+          <span>Repite la contraseña</span>
+          <input
+            class="input"
+            type="password"
+            required
+            minLength={8}
+            autocomplete="new-password"
+            placeholder="Repite tu contraseña"
+            value={passwordConfirmation}
+            onInput={(e) =>
+              setPasswordConfirmation((e.target as HTMLInputElement).value)}
           />
         </label>
         <div class="field-row">

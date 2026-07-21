@@ -1,6 +1,7 @@
 import { Handlers } from "$fresh/server.ts";
 import { createSession } from "../../../lib/session.ts";
 import { State } from "../../../types/State.ts";
+import { secretsEqual } from "../../../lib/password.ts";
 
 export const handler: Handlers<unknown, State> = {
   async POST(req, _ctx) {
@@ -23,7 +24,8 @@ export const handler: Handlers<unknown, State> = {
       );
     }
 
-    if (body.passcode !== adminPasscode) {
+    if (body.passcode.length > 200 ||
+      !(await secretsEqual(body.passcode, adminPasscode))) {
       return Response.json({ error: "Passcode incorrecto" }, { status: 401 });
     }
 
