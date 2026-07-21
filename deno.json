@@ -1,8 +1,8 @@
 {
   "tasks": {
-    "dev": "deno run -A --watch=static/,routes/ dev.ts",
-    "build": "deno run -A dev.ts build",
-    "preview": "deno run -A main.ts",
+    "dev": "deno run -A --unstable-kv --watch=static/,routes/ dev.ts",
+    "build": "deno run -A --unstable-kv dev.ts build",
+    "preview": "deno run -A --unstable-kv main.ts",
     "update": "deno cache --reload"
   },
   "imports": {
