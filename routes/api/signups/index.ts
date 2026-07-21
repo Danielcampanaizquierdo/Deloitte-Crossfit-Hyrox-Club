@@ -35,8 +35,6 @@ export const handler = {
     try {
       const data = await req.json();
       const signup = await signupService.create(data);
-      // Increment event attendee count
-      await eventService.addAttendee(data.eventId);
       return new Response(JSON.stringify(signup), {
         status: 201,
         headers: { "Content-Type": "application/json" },

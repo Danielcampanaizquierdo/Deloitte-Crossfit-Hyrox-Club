@@ -1,59 +1,65 @@
 import { EventSignup, CreateSignupRequest } from "../types/Signup.ts";
-import { storage } from "../lib/storage.ts";
+import {
+  createSignupRepository,
+  DuplicateSignupError,
+  SignupRepository,
+} from "../repositories/signupRepository.ts";
+import { kv } from "../lib/kv.ts";
 
-const STORAGE_FILE = "signups.json";
+// Pure factory: takes a SignupRepository so tests can build this service
+// against an isolated :memory: KV (see services/services_kv_test.ts).
+export function createSignupService(repo: SignupRepository) {
+  return {
+    async getAll(): Promise<EventSignup[]> {
+      return repo.list();
+    },
 
-export const signupService = {
-  async getAll(): Promise<EventSignup[]> {
-    return await storage.read(STORAGE_FILE);
-  },
+    async getByEventId(eventId: string): Promise<EventSignup[]> {
+      return repo.listByEvent(eventId);
+    },
 
-  async getByEventId(eventId: string): Promise<EventSignup[]> {
-    const signups = await this.getAll();
-    return signups.filter((s) => s.eventId === eventId);
-  },
+    async getByMemberId(memberId: string): Promise<EventSignup[]> {
+      return repo.listByMember(memberId);
+    },
 
-  async getByMemberId(memberId: string): Promise<EventSignup[]> {
-    const signups = await this.getAll();
-    return signups.filter((s) => s.memberId === memberId);
-  },
+    async getById(id: string): Promise<EventSignup | null> {
+      return repo.get(id);
+    },
 
-  async getById(id: string): Promise<EventSignup | null> {
-    const signups = await this.getAll();
-    return signups.find((s) => s.id === id) || null;
-  },
+    async isSignedUp(eventId: string, memberEmail: string): Promise<boolean> {
+      // Exact (case-sensitive) match, matching today's behavior — no
+      // normalization.
+      const signups = await repo.listByEvent(eventId);
+      return signups.some((s) => s.memberEmail === memberEmail);
+    },
 
-  async isSignedUp(eventId: string, memberEmail: string): Promise<boolean> {
-    const signups = await this.getAll();
-    return signups.some(
-      (s) => s.eventId === eventId && s.memberEmail === memberEmail
-    );
-  },
+    async create(data: CreateSignupRequest): Promise<EventSignup | null> {
+      try {
+        // Returns null when the referenced event does not exist, consistent
+        // with routes checking eventService.getById() themselves before
+        // calling this.
+        return await repo.create(data);
+      } catch (err) {
+        if (err instanceof DuplicateSignupError) {
+          // Preserve the existing message-based contract that
+          // routes/api/events/[id]/signup.ts relies on via
+          // err.message.includes("Already signed up") to return HTTP 409.
+          throw new Error("Already signed up for this event");
+        }
+        throw err;
+      }
+    },
 
-  async create(data: CreateSignupRequest): Promise<EventSignup> {
-    const exists = await this.isSignedUp(data.eventId, data.memberEmail);
-    if (exists) throw new Error("Already signed up for this event");
-    const signups = await this.getAll();
-    const signup: EventSignup = {
-      id: `signup-${Date.now()}`,
-      ...data,
-      signedUpAt: new Date(),
-    };
-    signups.push(signup);
-    await storage.write(STORAGE_FILE, signups);
-    return signup;
-  },
+    async delete(id: string): Promise<boolean> {
+      return repo.delete(id);
+    },
 
-  async delete(id: string): Promise<boolean> {
-    const signups = await this.getAll();
-    const index = signups.findIndex((s) => s.id === id);
-    if (index === -1) return false;
-    signups.splice(index, 1);
-    await storage.write(STORAGE_FILE, signups);
-    return true;
-  },
+    async countByEvent(eventId: string): Promise<number> {
+      return (await repo.listByEvent(eventId)).length;
+    },
+  };
+}
 
-  async countByEvent(eventId: string): Promise<number> {
-    return (await this.getByEventId(eventId)).length;
-  },
-};
+// Production singleton: binds to the app-lifetime KV connection once at
+// module load. Deno/Fresh support top-level await in ES modules.
+export const signupService = createSignupService(createSignupRepository(await kv));

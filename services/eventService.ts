@@ -1,71 +1,50 @@
 import { Event, CreateEventRequest, UpdateEventRequest } from "../types/Event.ts";
-import { storage } from "../lib/storage.ts";
+import {
+  createEventRepository,
+  EventRepository,
+} from "../repositories/eventRepository.ts";
+import { kv } from "../lib/kv.ts";
 
-const STORAGE_FILE = "events.json";
+// Pure factory: takes an EventRepository so tests can build this service
+// against an isolated :memory: KV (see services/services_kv_test.ts).
+export function createEventService(repo: EventRepository) {
+  return {
+    async getAll(): Promise<Event[]> {
+      return repo.list();
+    },
 
-export const eventService = {
-  async getAll(): Promise<Event[]> {
-    return await storage.read(STORAGE_FILE);
-  },
+    async getById(id: string): Promise<Event | null> {
+      return repo.get(id);
+    },
 
-  async getById(id: string): Promise<Event | null> {
-    const events = await this.getAll();
-    return events.find((e) => e.id === id) || null;
-  },
+    async getUpcoming(): Promise<Event[]> {
+      return repo.listUpcoming();
+    },
 
-  async getUpcoming(): Promise<Event[]> {
-    const now = new Date();
-    const events = await this.getAll();
-    return events
-      .filter((e) => new Date(e.date) > now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  },
+    async create(data: CreateEventRequest): Promise<Event> {
+      return repo.create(data);
+    },
 
-  async create(data: CreateEventRequest): Promise<Event> {
-    const events = await this.getAll();
-    const event: Event = {
-      id: `evt-${Date.now()}`,
-      ...data,
-      date: new Date(data.date),
-      attendees: 0,
-      approved: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    events.push(event);
-    await storage.write(STORAGE_FILE, events);
-    return event;
-  },
+    async update(id: string, data: UpdateEventRequest): Promise<Event | null> {
+      return repo.update(id, data);
+    },
 
-  async update(id: string, data: UpdateEventRequest): Promise<Event | null> {
-    const events = await this.getAll();
-    const index = events.findIndex((e) => e.id === id);
-    if (index === -1) return null;
-    const updated: Event = {
-      ...events[index],
-      ...data,
-      date: data.date ? new Date(data.date) : events[index].date,
-      updatedAt: new Date(),
-    };
-    events[index] = updated;
-    await storage.write(STORAGE_FILE, events);
-    return updated;
-  },
+    async delete(id: string): Promise<boolean> {
+      return repo.delete(id);
+    },
 
-  async delete(id: string): Promise<boolean> {
-    const events = await this.getAll();
-    const index = events.findIndex((e) => e.id === id);
-    if (index === -1) return false;
-    events.splice(index, 1);
-    await storage.write(STORAGE_FILE, events);
-    return true;
-  },
+    // No route calls this after Task 6 (the repository now increments
+    // attendees atomically inside the signup transaction), but the method is
+    // kept per the storage-swap-only scope of this task. Matches its current
+    // non-atomic get-then-update shape.
+    async addAttendee(id: string): Promise<Event | null> {
+      const event = await repo.get(id);
+      if (!event) return null;
+      return repo.update(id, { attendees: event.attendees + 1 });
+    },
+  };
+}
 
-  async addAttendee(id: string): Promise<Event | null> {
-    const event = await this.getById(id);
-    if (!event) return null;
-    event.attendees++;
-    event.updatedAt = new Date();
-    return await this.update(id, event);
-  },
-};
+// Production singleton: binds to the app-lifetime KV connection once at
+// module load. Deno/Fresh support top-level await in ES modules.
+export const eventService = createEventService(createEventRepository(await kv));
