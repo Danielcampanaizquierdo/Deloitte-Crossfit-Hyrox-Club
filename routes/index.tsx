@@ -1,49 +1,31 @@
 /** @jsx h */
 /** @jsxFrag Fragment */
-import { h, Fragment } from "preact";
+import { Fragment, h } from "preact";
 import { Handlers, PageProps } from "$fresh/server.ts";
 import { Head } from "$fresh/runtime.ts";
-import CountdownTimer from "../islands/CountdownTimer.tsx";
-import TabNavigation from "../islands/TabNavigation.tsx";
-import EventViewToggle from "../islands/EventViewToggle.tsx";
-import ModalManager from "../islands/ModalManager.tsx";
-import AdminPanel from "../islands/AdminPanel.tsx";
-import AdminPendingPanel from "../islands/AdminPendingPanel.tsx";
-import MembersFilter from "../islands/MembersFilter.tsx";
-import Calendar from "../islands/Calendar.tsx";
-import SignupForm from "../islands/SignupForm.tsx";
-import PRForm from "../islands/PRForm.tsx";
-import MemberForm from "../islands/MemberForm.tsx";
-import EventForm from "../islands/EventForm.tsx";
-import ResultForm from "../islands/ResultForm.tsx";
 import Topbar from "../components/Topbar.tsx";
-import Hero from "../components/Hero.tsx";
 import Footer from "../components/Footer.tsx";
+import Hero from "../islands/Hero.tsx";
+import TabNavigation from "../islands/TabNavigation.tsx";
+import EventsSection, { type EventItem } from "../islands/EventsSection.tsx";
+import LeaderboardSection, { type PRItem } from "../islands/LeaderboardSection.tsx";
+import WodSection, { type WodItem } from "../islands/WodSection.tsx";
+import MembersSection, { type MemberItem } from "../islands/MembersSection.tsx";
+import AdminSection, {
+  type PendingEvent,
+  type PendingMember,
+  type PendingPR,
+  type PendingResult,
+  type PendingScore,
+} from "../islands/AdminSection.tsx";
 import { eventService } from "../services/eventService.ts";
 import { memberService } from "../services/memberService.ts";
 import { prService } from "../services/prService.ts";
 import { resultService } from "../services/resultService.ts";
+import { wodService } from "../services/wodService.ts";
+import { formatSeconds } from "../lib/movements.ts";
+import { WOD_SCORE_LABELS } from "../types/Wod.ts";
 import { State } from "../types/State.ts";
-
-interface EventData {
-  id: string;
-  title: string;
-  date: string;
-  location: string;
-  description: string;
-  attendees: number;
-}
-
-interface PREntry {
-  id: string;
-  memberName: string;
-  weight: number;
-}
-
-interface PRGroup {
-  movement: string;
-  top: PREntry[];
-}
 
 interface ResultData {
   id: string;
@@ -53,68 +35,36 @@ interface ResultData {
   photoUrl?: string;
 }
 
-interface MemberData {
-  id: string;
-  name: string;
-  level: string;
-  goal: string;
-  location: string;
-}
-
-interface PendingMemberData {
-  id: string;
-  name: string;
-  email: string;
-  level: string;
-  goal: string;
-}
-
-interface PendingPRData {
-  id: string;
-  memberName: string;
-  memberEmail: string;
-  movement: string;
-  weight: number;
-}
-
-interface PendingEventData {
-  id: string;
-  title: string;
-  date: string;
-}
-
-interface PendingResultData {
-  id: string;
-  name: string;
-  date: string;
-}
-
 interface PageData {
   isAdmin: boolean;
-  events: EventData[];
-  prGroups: PRGroup[];
+  events: EventItem[];
+  prs: PRItem[];
+  wods: WodItem[];
   results: ResultData[];
-  members: MemberData[];
-  memberStats: { total: number; hyrox: number; competitors: number };
-  pendingMembers: PendingMemberData[];
-  pendingPRs: PendingPRData[];
-  pendingEvents: PendingEventData[];
-  pendingResults: PendingResultData[];
+  members: MemberItem[];
+  nextEvent: { id: string; title: string; date: string; location: string } | null;
+  pendingMembers: PendingMember[];
+  pendingPRs: PendingPR[];
+  pendingEvents: PendingEvent[];
+  pendingResults: PendingResult[];
+  pendingScores: PendingScore[];
 }
+
+const toStr = (d: unknown) => d instanceof Date ? d.toISOString() : String(d);
 
 export const handler: Handlers<PageData, State> = {
   async GET(_req, ctx) {
-    const [allMembers, allPRs, allEvents, allResults] = await Promise.all([
-      memberService.getAll(),
-      prService.getAll(),
-      eventService.getAll(),
-      resultService.getAll(),
-    ]);
+    const [allMembers, allPRs, allEvents, allResults, board, pendingScoresRaw] =
+      await Promise.all([
+        memberService.getAll(),
+        prService.getAll(),
+        eventService.getAll(),
+        resultService.getAll(),
+        wodService.getBoard(),
+        wodService.getPendingScores(),
+      ]);
 
-    const toStr = (d: unknown) =>
-      d instanceof Date ? d.toISOString() : String(d);
-
-    const approvedEvents: EventData[] = allEvents
+    const events: EventItem[] = allEvents
       .filter((e) => e.approved)
       .map((e) => ({
         id: e.id,
@@ -123,22 +73,39 @@ export const handler: Handlers<PageData, State> = {
         location: e.location,
         description: e.description,
         attendees: e.attendees,
+        capacity: e.capacity,
+        type: e.type,
       }));
 
-    const approvedPRs = allPRs.filter((p) => p.approved);
-    const grouped: Record<string, PREntry[]> = {};
-    for (const pr of approvedPRs) {
-      if (!grouped[pr.movement]) grouped[pr.movement] = [];
-      grouped[pr.movement].push({ id: pr.id, memberName: pr.memberName, weight: pr.weight });
-    }
-    const prGroups: PRGroup[] = Object.entries(grouped)
-      .map(([movement, entries]) => ({
-        movement,
-        top: entries.sort((a, b) => b.weight - a.weight).slice(0, 3),
-      }))
-      .slice(0, 4);
+    const prs: PRItem[] = allPRs
+      .filter((p) => p.approved)
+      .map((p) => ({
+        id: p.id,
+        memberName: p.memberName,
+        movement: p.movement,
+        weight: p.weight,
+        metric: p.metric,
+        date: toStr(p.date),
+      }));
 
-    const approvedResults: ResultData[] = allResults
+    const wods: WodItem[] = board.map((w) => ({
+      id: w.id,
+      name: w.name,
+      date: toStr(w.date),
+      format: w.format,
+      description: w.description,
+      timeCapMinutes: w.timeCapMinutes,
+      scoreType: w.scoreType,
+      scores: w.scores.map((s) => ({
+        id: s.id,
+        memberName: s.memberName,
+        value: s.value,
+        scaled: s.scaled,
+        notes: s.notes,
+      })),
+    }));
+
+    const results: ResultData[] = allResults
       .filter((r) => r.approved)
       .map((r) => ({
         id: r.id,
@@ -146,9 +113,10 @@ export const handler: Handlers<PageData, State> = {
         date: toStr(r.date),
         description: r.description,
         photoUrl: r.photoUrl,
-      }));
+      }))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const approvedMembers: MemberData[] = allMembers
+    const members: MemberItem[] = allMembers
       .filter((m) => m.approved)
       .map((m) => ({
         id: m.id,
@@ -156,222 +124,187 @@ export const handler: Handlers<PageData, State> = {
         level: m.level,
         goal: m.goal,
         location: m.location,
+        bio: m.bio,
       }));
 
-    const memberStats = {
-      total: approvedMembers.length,
-      hyrox: approvedMembers.filter((m) => m.goal === "hyrox").length,
-      competitors: approvedMembers.filter((m) => m.level === "advanced").length,
-    };
+    const now = Date.now();
+    const upcoming = events
+      .filter((e) => new Date(e.date).getTime() >= now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const nextEvent = upcoming[0]
+      ? {
+        id: upcoming[0].id,
+        title: upcoming[0].title,
+        date: upcoming[0].date,
+        location: upcoming[0].location,
+      }
+      : null;
 
-    const pendingMembers: PendingMemberData[] = allMembers
-      .filter((m) => !m.approved)
-      .map((m) => ({
-        id: m.id,
-        name: m.name,
-        email: m.email,
-        level: m.level,
-        goal: m.goal,
-      }));
-
-    const pendingPRs: PendingPRData[] = allPRs
-      .filter((p) => !p.approved)
-      .map((p) => ({
-        id: p.id,
-        memberName: p.memberName,
-        memberEmail: p.memberEmail,
-        movement: p.movement,
-        weight: p.weight,
-      }));
-
-    const pendingEvents: PendingEventData[] = allEvents
-      .filter((e) => !e.approved)
-      .map((e) => ({ id: e.id, title: e.title, date: toStr(e.date) }));
-
-    const pendingResults: PendingResultData[] = allResults
-      .filter((r) => !r.approved)
-      .map((r) => ({ id: r.id, name: r.name, date: toStr(r.date) }));
+    // Pending WOD scores carry only a wodId, so resolve each one's name and
+    // render its value in that WOD's own unit for the moderation queue.
+    const wodsById = new Map(
+      (await wodService.getAll()).map((w) => [w.id, w]),
+    );
+    const pendingScores: PendingScore[] = pendingScoresRaw.map((s) => {
+      const wod = wodsById.get(s.wodId);
+      const type = wod?.scoreType ?? "reps";
+      return {
+        id: s.id,
+        memberName: s.memberName,
+        wodName: wod?.name ?? "WOD eliminado",
+        display: type === "time"
+          ? formatSeconds(s.value)
+          : `${s.value} ${WOD_SCORE_LABELS[type].toLowerCase()}`,
+        scaled: s.scaled,
+      };
+    });
 
     return ctx.render({
       isAdmin: ctx.state.isAdmin,
-      events: approvedEvents,
-      prGroups,
-      results: approvedResults,
-      members: approvedMembers,
-      memberStats,
-      pendingMembers,
-      pendingPRs,
-      pendingEvents,
-      pendingResults,
+      events,
+      prs,
+      wods,
+      results,
+      members,
+      nextEvent,
+      pendingMembers: allMembers
+        .filter((m) => !m.approved)
+        .map((m) => ({
+          id: m.id,
+          name: m.name,
+          email: m.email,
+          level: m.level,
+          goal: m.goal,
+        })),
+      pendingPRs: allPRs
+        .filter((p) => !p.approved)
+        .map((p) => ({
+          id: p.id,
+          memberName: p.memberName,
+          movement: p.movement,
+          weight: p.weight,
+          metric: p.metric,
+        })),
+      pendingEvents: allEvents
+        .filter((e) => !e.approved)
+        .map((e) => ({ id: e.id, title: e.title, date: toStr(e.date) })),
+      pendingResults: allResults
+        .filter((r) => !r.approved)
+        .map((r) => ({ id: r.id, name: r.name, date: toStr(r.date) })),
+      pendingScores,
     });
   },
 };
 
 export default function Home({ data }: PageProps<PageData>) {
-  const { isAdmin, events, prGroups, results, members, memberStats } = data;
+  const {
+    isAdmin,
+    events,
+    prs,
+    wods,
+    results,
+    members,
+    nextEvent,
+    pendingMembers,
+    pendingPRs,
+    pendingEvents,
+    pendingResults,
+    pendingScores,
+  } = data;
+
+  const pendingCount = isAdmin
+    ? pendingMembers.length + pendingPRs.length + pendingEvents.length +
+      pendingResults.length + pendingScores.length
+    : 0;
+
+  const title = "Deloitte CrossFit & HYROX Club · Madrid";
+  const description =
+    "El hub del club: reserva entrenos, consulta el WOD del día, registra tus PRs y sigue los resultados de competición.";
 
   return (
-    <>
+    <Fragment>
       <Head>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="theme-color" content="#86BC25" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content="/images/escudo.png" />
+        <meta name="twitter:card" content="summary" />
+        <link rel="icon" href="/images/escudo.png" />
         <link
           rel="preload"
           href="/fonts/SairaCondensed-ExtraBold.woff2"
           as="font"
           type="font/woff2"
-          crossorigin
+          crossorigin="anonymous"
         />
         <link rel="stylesheet" href="/styles.css" />
       </Head>
+
+      <a class="skip-link" href="#events">Saltar al contenido</a>
+
       <div class="wrap">
         <Topbar />
-        <Hero />
-        <TabNavigation />
+        <Hero
+          nextEvent={nextEvent}
+          memberCount={members.length}
+          eventCount={events.length}
+          prCount={prs.length}
+        />
+        <TabNavigation pendingCount={pendingCount} />
 
-        {/* ── Events ── */}
         <section id="events" class="content active">
+          <EventsSection events={events} isAdmin={isAdmin} />
+        </section>
+
+        <section id="wod" class="content">
+          <WodSection wods={wods} isAdmin={isAdmin} />
+        </section>
+
+        <section id="leaderboard" class="content">
+          <LeaderboardSection prs={prs} />
+        </section>
+
+        <section id="results" class="content">
           <div class="section-head">
-            <h2>Lo que se viene</h2>
-            <div style="display:flex;gap:8px;align-items:center">
-              {isAdmin && (
-                <ModalManager
-                  buttonLabel="+ Añadir evento"
-                  modalId="eventModal"
-                  buttonClass="btn dark"
-                />
-              )}
-              <EventViewToggle />
+            <div>
+              <h2>Nuestras batallas</h2>
+              <p class="section-sub">
+                {results.length === 0
+                  ? "Sin competiciones publicadas"
+                  : `${results.length} ${
+                    results.length === 1 ? "competición" : "competiciones"
+                  }`}
+              </p>
             </div>
           </div>
 
-          <div id="eventCards" class="grid cards2">
-            {events.length === 0 && (
-              <p class="muted">No hay eventos próximos. ¡Vuelve pronto!</p>
-            )}
-            {events.map((ev) => (
-              <article key={ev.id} class="card">
-                <div class="imgph">Event image</div>
-                <div class="card-body">
-                  <div style="display:flex;justify-content:space-between;gap:14px">
-                    <h3>{ev.title}</h3>
-                    <span class="badge">{ev.attendees} apuntados</span>
-                  </div>
-                  <div class="meta">
-                    📅 {new Date(ev.date).toLocaleString("es-ES", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {ev.location && (
-                      <>
-                        <br />
-                        📍 {ev.location}
-                      </>
-                    )}
-                  </div>
-                  <CountdownTimer targetDate={ev.date} className="mini-count" />
-                  <p class="muted">{ev.description}</p>
-                  <div class="actions">
-                    <ModalManager
-                      buttonLabel="Apúntate"
-                      modalId="signupModal"
-                      buttonClass="btn green"
-                    />
-                    {isAdmin && (
-                      <form
-                        method="POST"
-                        action={`/api/events/${ev.id}/delete`}
-                        style="margin:0"
-                      >
-                        <button type="submit" class="btn red">
-                          Delete
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <Calendar events={events.map((e) => ({ id: e.id, title: e.title, date: e.date }))} />
-        </section>
-
-        {/* ── Leaderboard ── */}
-        <section id="leaderboard" class="content">
-          <div class="section-head">
-            <h2>PRs del club</h2>
-            <ModalManager
-              buttonLabel="+ Añadir PR"
-              modalId="prModal"
-              buttonClass="btn dark"
-            />
-          </div>
-
-          <div class="grid cards2">
-            {prGroups.length === 0 && (
+          {results.length === 0 && (
+            <div class="empty-state">
+              <div class="empty-icon" aria-hidden="true">🏆</div>
+              <h3>Todavía no hay resultados</h3>
               <p class="muted">
-                No hay PRs aprobados aún. ¡Sé el primero en registrar el tuyo!
+                Cuando el club compita, las crónicas aparecerán aquí.
               </p>
-            )}
-            {prGroups.map(({ movement, top }) => (
-              <article key={movement} class="card leader-card">
-                <div class="card-body">
-                  <h3>{movement}</h3>
-                  {top.map((entry, i) => (
-                    <div key={entry.id} class="row">
-                      <div class="rank">#{i + 1}</div>
-                      <div>
-                        <b>{entry.memberName}</b>
-                        <div class="bar">
-                          <div
-                            class="fill"
-                            style={`width:${Math.round((entry.weight / top[0].weight) * 100)}%`}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <b>{entry.weight}kg</b>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Results ── */}
-        <section id="results" class="content">
-          <div class="section-head">
-            <h2>Nuestras batallas</h2>
-            {isAdmin && (
-              <ModalManager
-                buttonLabel="+ Añadir resultado"
-                modalId="resultModal"
-                buttonClass="btn dark"
-              />
-            )}
-          </div>
+            </div>
+          )}
 
           <div class="grid cards3">
-            {results.length === 0 && (
-              <p class="muted">No hay resultados publicados aún.</p>
-            )}
             {results.map((r) => (
-              <article key={r.id} class="card">
+              <article key={r.id} class="card result-card">
                 {r.photoUrl
                   ? (
                     <img
+                      class="result-photo"
                       src={r.photoUrl}
                       alt={r.name}
-                      style="width:100%;height:160px;object-fit:cover;border-bottom:1px solid var(--line)"
+                      loading="lazy"
                     />
                   )
-                  : <div class="imgph">Past event photo</div>}
+                  : <div class="imgph" aria-hidden="true">🏅</div>}
                 <div class="card-body">
-                  <h3>{r.name}</h3>
                   <div class="eyebrow">
                     {new Date(r.date).toLocaleDateString("es-ES", {
                       day: "numeric",
@@ -379,6 +312,7 @@ export default function Home({ data }: PageProps<PageData>) {
                       year: "numeric",
                     })}
                   </div>
+                  <h3>{r.name}</h3>
                   <p class="muted">{r.description}</p>
                 </div>
               </article>
@@ -386,61 +320,27 @@ export default function Home({ data }: PageProps<PageData>) {
           </div>
         </section>
 
-        {/* ── Members ── */}
         <section id="members" class="content">
-          <div class="section-head">
-            <h2>Member profiles</h2>
-            <ModalManager
-              buttonLabel="+ Añadir miembro"
-              modalId="memberModal"
-              buttonClass="btn dark"
-            />
-          </div>
-
-          <div class="stats">
-            <div class="stat">
-              <small>Members</small>
-              <b>{memberStats.total}</b>
-            </div>
-            <div class="stat">
-              <small>Competitors</small>
-              <b>{memberStats.competitors}</b>
-            </div>
-            <div class="stat">
-              <small>HYROX focus</small>
-              <b>{memberStats.hyrox}</b>
-            </div>
-            <div class="stat">
-              <small>Pending approval</small>
-              <b>{data.pendingMembers.length}</b>
-            </div>
-          </div>
-
-          <MembersFilter members={members} />
+          <MembersSection
+            members={members}
+            prs={prs}
+            pendingCount={pendingMembers.length}
+          />
         </section>
 
-        {/* ── Admin ── */}
         <section id="admin" class="content">
-          <AdminPanel isAdmin={isAdmin} />
-          {isAdmin && (
-            <AdminPendingPanel
-              members={data.pendingMembers}
-              prs={data.pendingPRs}
-              events={data.pendingEvents}
-              results={data.pendingResults}
-            />
-          )}
+          <AdminSection
+            isAdmin={isAdmin}
+            members={pendingMembers}
+            prs={pendingPRs}
+            events={pendingEvents}
+            results={pendingResults}
+            scores={pendingScores}
+          />
         </section>
 
         <Footer />
       </div>
-
-      {/* ── Modal islands ── */}
-      <SignupForm events={events.map((e) => ({ id: e.id, title: e.title, date: e.date }))} />
-      <PRForm />
-      <MemberForm />
-      {isAdmin && <EventForm />}
-      {isAdmin && <ResultForm />}
-    </>
+    </Fragment>
   );
 }

@@ -57,19 +57,27 @@ La aplicación estará disponible en `http://localhost:8000`
 │       ├── signups/
 │       └── admin/
 ├── islands/                        # Componentes interactivos
-│   ├── TabNavigation.tsx           # Navegación
-│   ├── EventViewToggle.tsx         # Toggle vista
-│   ├── CountdownTimer.tsx          # Timer
-│   ├── Calendar.tsx                # Calendario
-│   ├── AdminPanel.tsx              # Admin auth
-│   ├── MembersFilter.tsx           # Filtros
-│   ├── EventFormModal.tsx          # Crear evento
-│   ├── MemberFormModal.tsx         # Crear miembro
-│   ├── SignupFormModal.tsx         # Apuntarse
-│   ├── PRFormModal.tsx             # Añadir PR
-│   ├── ResultFormModal.tsx         # Añadir resultado
-│   └── PendingApprovalManager.tsx  # Aprobar items
-├── components/                     # Componentes estáticos
+│   ├── Hero.tsx                    # Portada + cuenta atrás
+│   ├── TabNavigation.tsx           # Pestañas con rutas por hash
+│   ├── EventsSection.tsx           # Tarjetas, calendario y reservas
+│   ├── WodSection.tsx              # Tablón de WODs y scores
+│   ├── LeaderboardSection.tsx      # PRs y registro de marcas
+│   ├── MembersSection.tsx          # Comunidad y perfiles
+│   └── AdminSection.tsx            # Login y moderación
+├── components/                     # Componentes sin estado
+│   ├── Modal.tsx                   # Diálogo accesible reutilizable
+│   ├── Countdown.tsx               # Cuenta atrás reutilizable
+│   ├── Topbar.tsx
+│   └── Footer.tsx
+├── lib/
+│   ├── movements.ts                # Catálogo y métricas de PR
+│   ├── toast.ts                    # Notificaciones
+│   ├── bus.ts                      # Eventos entre islands
+│   ├── errors.ts
+│   ├── kv.ts
+│   └── session.ts
+├── scripts/
+│   └── seed.ts                     # Datos de ejemplo (solo localhost)
 ├── services/                       # Lógica de negocio
 │   ├── eventService.ts
 │   ├── memberService.ts
@@ -360,7 +368,74 @@ curl -X POST http://localhost:8000/api/signups \
 - **TypeScript** - Type safety
 - **Deno KV** - Persistencia (Fase 3, completada)
 
-## 📈 Próximas Fases
+## 🏋️ Fase 4: Club completo (completada)
+
+### Reservas de actividades
+
+- Aforo por evento (`capacity`). Sin aforo el evento es ilimitado, que es como
+  se comporta todo evento creado antes de que existiera el campo.
+- La comprobación de aforo ocurre **dentro** de la transacción atómica que
+  incrementa el contador, así que dos atletas peleando por la última plaza no
+  pueden reservarla los dos.
+- Barra de plazas restantes y estado "Completo" en cada tarjeta.
+- Lista de asistentes por evento. Sin sesión de admin se devuelven solo los
+  nombres: los emails y comentarios no se exponen.
+- Cancelación propia con el email usado al reservar, que libera la plaza.
+
+### Calendario
+
+- Rejilla que empieza en lunes, coherente con las cabeceras `L M X J V S D`.
+  Antes se calculaba con `getDay()` (domingo = 0), así que **cada evento se
+  pintaba un día corrido**.
+- Día de hoy resaltado, navegación por mes y botón "Hoy".
+- Al seleccionar un día se listan sus sesiones y se puede reservar desde ahí,
+  con el evento ya seleccionado en el formulario.
+
+### PRs multimétrica
+
+- Un PR puede ser peso (kg), tiempo (`mm:ss`) o repeticiones. La métrica se
+  deduce del catálogo de `lib/movements.ts`, no se confía en el cliente.
+- Los tiempos se ordenan de menor a mayor y los pesos y repeticiones de mayor a
+  menor, así que una marca de 5K ya no compite "al revés" contra un deadlift.
+- Leaderboard por categoría (halterofilia, gimnásticos, benchmark, cardio) con
+  búsqueda por atleta y una sola marca —la mejor— por atleta y movimiento.
+
+### WOD del día
+
+- Tablón con el workout tal cual se escribe, formato (AMRAP, For Time, EMOM…) y
+  time cap.
+- Cada atleta registra su score una vez por WOD; queda pendiente hasta que un
+  admin lo aprueba.
+- Ranking por WOD según su `scoreType`, con Rx siempre por delante de scaled.
+
+### Perfiles y moderación
+
+- Ficha de miembro con bio y sus récords, formateados según su métrica.
+- Panel de moderación unificado (eventos, PRs, scores de WOD, resultados y
+  miembros) con contador en vivo en la pestaña Admin.
+
+### Interfaz
+
+- Notificaciones toast en lugar de mensajes incrustados en cada formulario.
+- Modales accesibles: cierre con `Esc` y clic en el fondo, foco atrapado
+  mientras están abiertos, foco devuelto al cerrar y bloqueo del scroll de
+  fondo. Antes se ocultaban con `style.display`, así que sus campos seguían en
+  el orden de tabulación estando "cerrados".
+- Pestañas enlazables por hash (`/#wod`), compatibles con el botón atrás.
+- La cuenta atrás del hero usa el próximo evento real. Antes leía un atributo
+  `data-countdown` que nadie consultaba, así que el recuadro salía vacío.
+
+### Datos de ejemplo
+
+```bash
+deno run -A scripts/seed.ts
+```
+
+Crea eventos, miembros, PRs de las tres métricas, WODs con scores y resultados.
+Se niega a ejecutarse contra cualquier host que no sea localhost salvo que se
+pase `SEED_ALLOW_REMOTE=1`.
+
+## 📈 Fases anteriores
 
 ### Fase 3: Persistencia con Deno KV (completada)
 
@@ -376,27 +451,13 @@ curl -X POST http://localhost:8000/api/signups \
 > verificar de forma independiente la base legal y las garantías de privacidad
 > que le apliquen.
 
-### Fase 4: Authentication
+### Pendiente
 
-- [ ] User login/register
-- [ ] JWT tokens
-- [ ] Role-based access (user, admin)
-- [ ] Session management
-
-### Fase 5: File Upload
-
-- [ ] Image upload para eventos
-- [ ] Image upload para results
-- [ ] Avatar upload para miembros
-- [ ] AWS S3 o similar
-
-### Fase 6: Advanced Features
-
-- [ ] Email notifications
-- [ ] Leaderboard rankings
-- [ ] Statistics dashboard
-- [ ] Export reports
-- [ ] Dark/Light mode toggle
+- [ ] Cuentas de usuario propias (hoy la identidad de un atleta es su email)
+- [ ] Subida de imágenes para eventos, resultados y avatares
+- [ ] Notificaciones por email al aprobar o al liberarse una plaza
+- [ ] Lista de espera cuando un evento se llena
+- [ ] Exportar resultados y rankings
 
 ## 📝 Datos de Prueba
 
@@ -438,9 +499,7 @@ Ver [API_DOCS.md](./API_DOCS.md) para documentación detallada de endpoints.
 
 ---
 
-**Status**: 🟢 Fase 3 Completada | Backend API Funcional con persistencia Deno
-KV
+**Status**: 🟢 Fase 4 completada | Reservas con aforo, calendario, PRs
+multimétrica, WODs y moderación, sobre persistencia Deno KV
 
 **Última actualización**: 21 Jul 2026
-
-**Próximo**: Fase 4 - Authentication

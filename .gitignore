@@ -30,3 +30,8 @@ data/
 
 # Local Git worktrees
 .worktrees/
+
+# Playwright MCP session artifacts (snapshots, console logs, screenshots)
+.playwright-mcp/
+*.png
+!static/images/*.png

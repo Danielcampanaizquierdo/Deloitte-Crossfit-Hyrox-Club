@@ -40,26 +40,13 @@ import * as $api_wods_id_delete from "./routes/api/wods/[id]/delete.ts";
 import * as $api_wods_id_scores from "./routes/api/wods/[id]/scores.ts";
 import * as $api_wods_index from "./routes/api/wods/index.ts";
 import * as $index from "./routes/index.tsx";
-import * as $AdminPanel from "./islands/AdminPanel.tsx";
-import * as $AdminPendingPanel from "./islands/AdminPendingPanel.tsx";
-import * as $Calendar from "./islands/Calendar.tsx";
-import * as $CountdownTimer from "./islands/CountdownTimer.tsx";
-import * as $EventForm from "./islands/EventForm.tsx";
-import * as $EventFormModal from "./islands/EventFormModal.tsx";
-import * as $EventViewToggle from "./islands/EventViewToggle.tsx";
-import * as $MemberForm from "./islands/MemberForm.tsx";
-import * as $MemberFormModal from "./islands/MemberFormModal.tsx";
-import * as $MembersFilter from "./islands/MembersFilter.tsx";
-import * as $ModalContainer from "./islands/ModalContainer.tsx";
-import * as $ModalManager from "./islands/ModalManager.tsx";
-import * as $PRForm from "./islands/PRForm.tsx";
-import * as $PRFormModal from "./islands/PRFormModal.tsx";
-import * as $PendingApprovalManager from "./islands/PendingApprovalManager.tsx";
-import * as $ResultForm from "./islands/ResultForm.tsx";
-import * as $ResultFormModal from "./islands/ResultFormModal.tsx";
-import * as $SignupForm from "./islands/SignupForm.tsx";
-import * as $SignupFormModal from "./islands/SignupFormModal.tsx";
+import * as $AdminSection from "./islands/AdminSection.tsx";
+import * as $EventsSection from "./islands/EventsSection.tsx";
+import * as $Hero from "./islands/Hero.tsx";
+import * as $LeaderboardSection from "./islands/LeaderboardSection.tsx";
+import * as $MembersSection from "./islands/MembersSection.tsx";
 import * as $TabNavigation from "./islands/TabNavigation.tsx";
+import * as $WodSection from "./islands/WodSection.tsx";
 import { type Manifest } from "$fresh/server.ts";
 
 const manifest = {
@@ -104,26 +91,13 @@ const manifest = {
     "./routes/index.tsx": $index,
   },
   islands: {
-    "./islands/AdminPanel.tsx": $AdminPanel,
-    "./islands/AdminPendingPanel.tsx": $AdminPendingPanel,
-    "./islands/Calendar.tsx": $Calendar,
-    "./islands/CountdownTimer.tsx": $CountdownTimer,
-    "./islands/EventForm.tsx": $EventForm,
-    "./islands/EventFormModal.tsx": $EventFormModal,
-    "./islands/EventViewToggle.tsx": $EventViewToggle,
-    "./islands/MemberForm.tsx": $MemberForm,
-    "./islands/MemberFormModal.tsx": $MemberFormModal,
-    "./islands/MembersFilter.tsx": $MembersFilter,
-    "./islands/ModalContainer.tsx": $ModalContainer,
-    "./islands/ModalManager.tsx": $ModalManager,
-    "./islands/PRForm.tsx": $PRForm,
-    "./islands/PRFormModal.tsx": $PRFormModal,
-    "./islands/PendingApprovalManager.tsx": $PendingApprovalManager,
-    "./islands/ResultForm.tsx": $ResultForm,
-    "./islands/ResultFormModal.tsx": $ResultFormModal,
-    "./islands/SignupForm.tsx": $SignupForm,
-    "./islands/SignupFormModal.tsx": $SignupFormModal,
+    "./islands/AdminSection.tsx": $AdminSection,
+    "./islands/EventsSection.tsx": $EventsSection,
+    "./islands/Hero.tsx": $Hero,
+    "./islands/LeaderboardSection.tsx": $LeaderboardSection,
+    "./islands/MembersSection.tsx": $MembersSection,
     "./islands/TabNavigation.tsx": $TabNavigation,
+    "./islands/WodSection.tsx": $WodSection,
   },
   baseUrl: import.meta.url,
 } satisfies Manifest;

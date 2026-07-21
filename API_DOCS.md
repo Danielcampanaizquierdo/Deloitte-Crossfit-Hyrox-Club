@@ -414,12 +414,101 @@ curl -X POST http://localhost:8000/api/admin/results/res-001/approve
 
 ---
 
+### WODs
+
+#### GET /wods
+Tablón público: WODs aprobados (más recientes primero), cada uno con sus scores
+aprobados ya ordenados según su `scoreType` (Rx antes que scaled; los tiempos de
+menor a mayor, el resto de mayor a menor).
+
+```bash
+curl http://localhost:8000/api/wods
+```
+
+#### POST /wods *(admin)*
+Publica un WOD. Se aprueba automáticamente, igual que eventos y resultados.
+
+| Campo | Tipo | Obligatorio |
+|---|---|---|
+| `name` | string | sí |
+| `date` | string (ISO o `YYYY-MM-DD`) | sí |
+| `format` | `amrap`\|`for_time`\|`emom`\|`strength`\|`hyrox` | sí |
+| `description` | string (se respetan los saltos de línea) | sí |
+| `scoreType` | `reps`\|`rounds`\|`time`\|`weight` | sí |
+| `timeCapMinutes` | number | no |
+
+#### DELETE /wods/{id}/delete *(admin)*
+Borra el WOD **y todos sus scores**, para no dejar scores huérfanos.
+
+#### GET /wods/{id}/scores
+Scores aprobados de ese WOD.
+
+#### POST /wods/{id}/scores
+Registra un score. Queda pendiente hasta que un admin lo apruebe. Un mismo email
+solo puede registrar un score por WOD (**409** si repite).
+
+Para un WOD con `scoreType: "time"`, `value` se envía como `mm:ss` (o `h:mm:ss`)
+y se almacena en segundos. Para el resto, `value` es un número positivo.
+
+```bash
+curl -X POST http://localhost:8000/api/wods/wod-123/scores \
+  -H "Content-Type: application/json" \
+  -d '{"memberName":"Ana","memberEmail":"ana@example.com","value":"12:40","scaled":false}'
+```
+
+#### POST /wod-scores/{id}/approve *(admin)*
+#### DELETE /wod-scores/{id}/delete *(admin)*
+Aprueba o descarta un score pendiente. Borrarlo libera al atleta para volver a
+enviarlo corregido.
+
+### Reservas
+
+#### GET /events/{id}/attendees
+Lista de asistentes en orden de reserva. Para usuarios no admin devuelve solo
+`id`, `memberName` y `signedUpAt`: los emails y comentarios se omiten. Un admin
+recibe el registro completo.
+
+#### POST /events/{id}/cancel
+Cancela la reserva propia. El email con el que se reservó es lo que autoriza la
+cancelación. Libera la plaza y decrementa el contador de forma atómica.
+
+```bash
+curl -X POST http://localhost:8000/api/events/evt-123/cancel \
+  -H "Content-Type: application/json" \
+  -d '{"memberEmail":"ana@example.com"}'
+```
+
+**404** si no hay ninguna reserva con ese email en ese evento.
+
+### Aforo de eventos
+
+`POST /events` acepta `capacity` (opcional). Sin `capacity`, o con `capacity: 0`,
+el evento es ilimitado — que es como se comporta todo evento creado antes de que
+existiera este campo.
+
+Cuando el evento está lleno, `POST /events/{id}/signup` responde **409** con
+`{"error":"Este evento ya está completo"}`. La comprobación ocurre dentro de la
+misma transacción atómica que incrementa el contador, así que dos atletas
+compitiendo por la última plaza no pueden reservarla los dos.
+
+### Métricas de PR
+
+`POST /prs` acepta `metric`: `weight` (kg), `time` (segundos) o `reps`. Si no se
+envía, se deduce del catálogo de movimientos (`lib/movements.ts`), de modo que un
+movimiento siempre se ordena como corresponde a su métrica: los tiempos de menor
+a mayor, los pesos y repeticiones de mayor a menor.
+
+Los PRs guardados antes de que existiera `metric` no lo llevan y se interpretan
+como `weight`, que es lo que siempre fueron.
+
 ## Status Codes
 
 - **200 OK** - Éxito
 - **201 Created** - Recurso creado
 - **400 Bad Request** - Datos inválidos
+- **403 Forbidden** - Requiere sesión de admin
 - **404 Not Found** - Recurso no existe
+- **409 Conflict** - Duplicado o evento completo
 - **500 Internal Server Error** - Error del servidor
 
 ## Error Examples

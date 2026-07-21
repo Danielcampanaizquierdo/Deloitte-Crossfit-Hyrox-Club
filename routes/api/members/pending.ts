@@ -1,4 +1,5 @@
 import { FreshContext } from "$fresh/server.ts";
+import { errorMessage } from "../../../lib/errors.ts";
 import { memberService } from "../../../services/memberService.ts";
 
 export const handler = {
@@ -11,7 +12,7 @@ export const handler = {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: errorMessage(error) }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
