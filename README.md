@@ -20,10 +20,23 @@ cd Deloitte-Crossfit-Hyrox-Club
 git checkout deno-fresh-migration
 
 # Ejecutar en modo desarrollo
-deno run -A dev.ts
+deno task dev
 ```
 
 La aplicación estará disponible en `http://localhost:8000`
+
+> **Persistencia (Deno KV):** la app usa Deno KV, una API "unstable" de Deno.
+> Está habilitada de forma automática mediante `"unstable": ["kv"]` en
+> `deno.json`, por lo que cualquier comando de Deno que use este proyecto
+> (`deno task dev`, `deno test`, `deno run ... main.ts`) tiene acceso a KV sin
+> necesidad de pasar `--unstable-kv` a mano. Si ejecutas la app con un comando
+> propio que ignore `deno.json`, añade `--unstable-kv` o la interacción con la
+> base de datos fallará con `Deno.openKv is not a function`.
+
+> **Login de administrador:** el inicio de sesión requiere las variables de
+> entorno `ADMIN_PASSCODE` y `SESSION_SECRET` (esta última, un secreto aleatorio
+> de al menos 32 caracteres). Sin ellas, `POST /api/admin/login` responde 500.
+> Consulta [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el despliegue.
 
 ## 📁 Estructura del Proyecto
 
