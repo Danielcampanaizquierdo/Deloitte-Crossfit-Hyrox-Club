@@ -78,7 +78,7 @@ button,input,textarea,select{font-family:inherit}
 .timebox{border:1px solid rgba(255,255,255,.11);border-radius:15px;background:rgba(0,0,0,.62);text-align:center;padding:12px 0}
 .timebox b{display:block;font-size:24px;color:var(--green)}
 .timebox small{font-size:10px;color:var(--muted)}
-.nav{position:sticky;top:10px;z-index:20;display:grid;grid-template-columns:repeat(2,1fr);overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.88);backdrop-filter:blur(10px);border-radius:var(--radius);margin-bottom:32px}
+.nav{position:sticky;top:10px;z-index:20;display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.88);backdrop-filter:blur(10px);border-radius:var(--radius);margin-bottom:32px}
 @media(min-width:800px){.nav{grid-template-columns:repeat(5,1fr)}}
 .tab{border:0;background:transparent;color:#fff;padding:16px;border-bottom:3px solid transparent;text-transform:uppercase;letter-spacing:.1em;font-weight:800;font-size:12px;cursor:pointer;transition:all .2s}
 .tab.active{border-bottom-color:var(--green);color:var(--green)}
@@ -143,4 +143,4 @@ button,input,textarea,select{font-family:inherit}
 .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;padding-top:20px;border-top:1px solid var(--line)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.tools{display:flex;gap:8px}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
