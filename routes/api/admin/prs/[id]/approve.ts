@@ -1,5 +1,5 @@
 import { FreshContext } from "$fresh/server.ts";
-import { prService } from "../../../services/prService.ts";
+import { prService } from "../../../../../services/prService.ts";
 
 export const handler = {
   // POST /api/admin/prs/[id]/approve - Approve PR

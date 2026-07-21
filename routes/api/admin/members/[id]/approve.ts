@@ -1,5 +1,5 @@
 import { FreshContext } from "$fresh/server.ts";
-import { memberService } from "../../../services/memberService.ts";
+import { memberService } from "../../../../../services/memberService.ts";
 
 export const handler = {
   // POST /api/admin/members/[id]/approve - Approve member

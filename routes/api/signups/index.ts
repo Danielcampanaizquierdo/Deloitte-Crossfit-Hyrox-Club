@@ -1,5 +1,5 @@
 import { FreshContext } from "$fresh/server.ts";
-import { signupService } from "../../services/signupService.ts";
+import { signupService } from "../../../services/signupService.ts";
 
 export const handler = {
   // GET /api/signups - Get all signups
