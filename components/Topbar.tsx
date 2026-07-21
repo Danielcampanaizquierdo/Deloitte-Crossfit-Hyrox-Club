@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function Topbar() {
   return (
     <header class="topbar">

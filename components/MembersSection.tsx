@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function MembersSection() {
   return (
     <section id="members" class="content">

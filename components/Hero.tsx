@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function Hero() {
   return (
     <section class="hero">

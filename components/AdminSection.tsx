@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function AdminSection() {
   return (
     <section id="admin" class="content">

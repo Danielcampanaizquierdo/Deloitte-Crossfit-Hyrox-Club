@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function ResultsSection() {
   return (
     <section id="results" class="content">

@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import { useState } from "preact/hooks";
 
 type LevelType = "all" | "beginner" | "intermediate" | "advanced";

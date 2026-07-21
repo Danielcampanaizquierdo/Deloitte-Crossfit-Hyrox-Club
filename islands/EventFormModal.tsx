@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import { useState, useEffect } from "preact/hooks";
 import { api } from "../lib/api.ts";
 import { Event } from "../types/Event.ts";

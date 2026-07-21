@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import { Handlers, PageProps } from "$fresh/server.ts";
 import { Head } from "$fresh/runtime.ts";
 import CountdownTimer from "../islands/CountdownTimer.tsx";

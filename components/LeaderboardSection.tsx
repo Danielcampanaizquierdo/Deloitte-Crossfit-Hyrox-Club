@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function LeaderboardSection() {
   return (
     <section id="leaderboard" class="content">

@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function EventsSection() {
   return (
     <section id="events" class="content active">

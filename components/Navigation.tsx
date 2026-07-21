@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 export default function Navigation() {
   return (
     <nav class="nav">
