@@ -345,16 +345,23 @@ curl -X POST http://localhost:8000/api/signups \
 - **Fresh** - SSR + Islands
 - **Preact** - Lightweight UI library
 - **TypeScript** - Type safety
-- **In-memory storage** - Fase 2 (será reemplazado con DB)
+- **Deno KV** - Persistencia (Fase 3, completada)
 
 ## 📈 Próximas Fases
 
-### Fase 3: Database Integration
+### Fase 3: Persistencia con Deno KV (completada)
 
-- [ ] PostgreSQL o MongoDB
-- [ ] Connection pooling
-- [ ] Migrations
-- [ ] Reemplazar in-memory con queries reales
+- [x] Persistencia mediante Deno KV, sustituyendo el almacenamiento in-memory
+- [x] Repositorios por entidad con escrituras atómicas (`Deno.Kv.atomic()`)
+- [x] Antes de desplegar: crear y asignar una base Deno KV a la app desde la
+      consola de Deno Deploy (ver [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md))
+
+> **Nota sobre residencia de datos**: según la documentación de Deno, Deno KV
+> almacena y transmite los datos en Estados Unidos. Este proyecto no reclama
+> residencia exclusiva en la UE ni cumplimiento de GDPR. Quien opere este
+> despliegue con datos personales reales (nombres, correos electrónicos) debe
+> verificar de forma independiente la base legal y las garantías de privacidad
+> que le apliquen.
 
 ### Fase 4: Authentication
 
@@ -418,8 +425,9 @@ Ver [API_DOCS.md](./API_DOCS.md) para documentación detallada de endpoints.
 
 ---
 
-**Status**: 🟢 Fase 2 Completada | Backend API Funcional
+**Status**: 🟢 Fase 3 Completada | Backend API Funcional con persistencia Deno
+KV
 
-**Última actualización**: 20 Jul 2026
+**Última actualización**: 21 Jul 2026
 
-**Próximo**: Fase 3 - Database Integration
+**Próximo**: Fase 4 - Authentication

@@ -13,11 +13,14 @@ This project uses the current Deno Deploy platform at
 3. Use the Fresh framework preset detected by Deno Deploy. If the dashboard asks
    for these values, use `deno task build` as the build command and `main.ts` as
    the entrypoint.
-4. In the production environment variables, set both required secrets:
+4. Provision a Deno KV database in the Deno Deploy console and assign it to this
+   app. The app connects to its assigned KV database automatically at runtime
+   (`Deno.openKv()`), with no connection string or token in the code.
+5. In the production environment variables, set both required secrets:
    - `ADMIN_PASSCODE`: the passcode for the site's admin area.
    - `SESSION_SECRET`: a unique random secret of at least 32 characters used to
      sign session cookies.
-5. Deploy the default branch (`main`) and wait for the build and warm-up stages
+6. Deploy the default branch (`main`) and wait for the build and warm-up stages
    to finish in the Deno Deploy dashboard.
 
 Deno Deploy builds and deploys linked GitHub commits itself. The repository
