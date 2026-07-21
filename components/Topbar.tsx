@@ -3,11 +3,7 @@ export default function Topbar() {
     <header class="topbar">
       <div class="brand">
         <div class="crest">
-          <span>
-            Deloitte
-            <b>HYROX</b>
-            CLUB
-          </span>
+          <img src="/images/escudo.png" alt="Deloitte CrossFit & HYROX Club" />
         </div>
         <div>
           <div class="eyebrow">Madrid</div>
