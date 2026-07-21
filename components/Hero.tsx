@@ -1,6 +1,7 @@
 /** @jsx h */
 /** @jsxFrag Fragment */
 import { h, Fragment } from "preact";
+import ModalManager from "../islands/ModalManager.tsx";
 export default function Hero() {
   return (
     <section class="hero">
@@ -18,8 +19,16 @@ export default function Hero() {
           profiles, PRs, past competitions and admin moderation.
         </p>
         <div class="actions">
-          <button class="btn green">Apuntarme</button>
-          <button class="btn dark">Crear perfil</button>
+          <ModalManager
+            buttonLabel="Apuntarme"
+            modalId="signupModal"
+            buttonClass="btn green"
+          />
+          <ModalManager
+            buttonLabel="Crear perfil"
+            modalId="memberModal"
+            buttonClass="btn dark"
+          />
         </div>
       </div>
       <aside class="hero-card">
