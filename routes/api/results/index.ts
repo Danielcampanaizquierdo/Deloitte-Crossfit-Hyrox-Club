@@ -1,37 +1,29 @@
-import { FreshContext } from "$fresh/server.ts";
-import { resultService } from "../../services/resultService.ts";
+import { Handlers } from "$fresh/server.ts";
+import { resultService } from "../../../services/resultService.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/results - Get all approved results
-  async GET(_req: Request, _ctx: FreshContext) {
-    try {
-      const results = await resultService.getApproved();
-      return new Response(JSON.stringify(results), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+export const handler: Handlers<unknown, State> = {
+  async POST(req, ctx) {
+    if (!ctx.state.isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
-  },
+    let body: Record<string, string>;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ error: "JSON inválido" }, { status: 400 });
+    }
 
-  // POST /api/results - Create result
-  async POST(req: Request, _ctx: FreshContext) {
-    try {
-      const data = await req.json();
-      const result = await resultService.create(data);
-      return new Response(JSON.stringify(result), {
-        status: 201,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    const { name, date, description, photoUrl } = body;
+    if (!name || !date || !description) {
+      return Response.json(
+        { error: "Campos requeridos: name, date, description" },
+        { status: 400 },
+      );
     }
+
+    const result = await resultService.create({ name, date, description, photoUrl });
+    const approved = await resultService.approve(result.id);
+    return Response.json(approved, { status: 201 });
   },
 };

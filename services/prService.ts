@@ -5,42 +5,35 @@ import { memberService } from "./memberService.ts";
 const STORAGE_FILE = "prs.json";
 
 export const prService = {
-  // Get all PRs
   async getAll(): Promise<PR[]> {
     return await storage.read(STORAGE_FILE);
   },
 
-  // Get approved PRs only
   async getApproved(): Promise<PR[]> {
     const prs = await this.getAll();
     return prs.filter((p) => p.approved);
   },
 
-  // Get pending PRs
   async getPending(): Promise<PR[]> {
     const prs = await this.getAll();
     return prs.filter((p) => !p.approved);
   },
 
-  // Get PR by ID
   async getById(id: string): Promise<PR | null> {
     const prs = await this.getAll();
     return prs.find((p) => p.id === id) || null;
   },
 
-  // Get PRs by member
   async getByMemberId(memberId: string): Promise<PR[]> {
     const prs = await this.getAll();
     return prs.filter((p) => p.memberId === memberId);
   },
 
-  // Get PRs by movement
   async getByMovement(movement: string): Promise<PR[]> {
     const prs = await this.getAll();
     return prs.filter((p) => p.movement === movement && p.approved);
   },
 
-  // Get top PR for a movement
   async getTop(movement: string): Promise<PR | null> {
     const movementPrs = await this.getByMovement(movement);
     return movementPrs.length > 0
@@ -50,16 +43,21 @@ export const prService = {
       : null;
   },
 
-  // Create PR
   async create(data: CreatePRRequest): Promise<PR> {
-    const member = await memberService.getById(data.memberId);
-    if (!member) throw new Error("Member not found");
-
+    let memberName = data.memberName;
+    if (data.memberId) {
+      const member = await memberService.getById(data.memberId);
+      if (!member) throw new Error("Member not found");
+      memberName = member.name;
+    }
     const prs = await this.getAll();
     const pr: PR = {
       id: `pr-${Date.now()}`,
-      ...data,
-      memberName: member.name,
+      memberId: data.memberId ?? "",
+      memberName,
+      memberEmail: data.memberEmail,
+      movement: data.movement,
+      weight: data.weight,
       date: new Date(data.date),
       approved: false,
       createdAt: new Date(),
@@ -70,12 +68,10 @@ export const prService = {
     return pr;
   },
 
-  // Update PR
   async update(id: string, data: UpdatePRRequest): Promise<PR | null> {
     const prs = await this.getAll();
     const index = prs.findIndex((p) => p.id === id);
     if (index === -1) return null;
-
     const updated: PR = {
       ...prs[index],
       ...data,
@@ -87,7 +83,6 @@ export const prService = {
     return updated;
   },
 
-  // Delete PR
   async delete(id: string): Promise<boolean> {
     const prs = await this.getAll();
     const index = prs.findIndex((p) => p.id === id);
@@ -97,7 +92,6 @@ export const prService = {
     return true;
   },
 
-  // Approve PR
   async approve(id: string): Promise<PR | null> {
     return this.update(id, { approved: true });
   },

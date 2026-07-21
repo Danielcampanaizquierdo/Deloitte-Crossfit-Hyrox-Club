@@ -1,9 +1,7 @@
-import { ensureDir } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { ensureDir } from "std/fs/mod.ts";
 
 const DATA_DIR = "./data";
 
-// Ensure data directory exists
 await ensureDir(DATA_DIR);
 
 interface StorageFile {
@@ -23,11 +21,10 @@ class JSONStorage {
   private async ensureFile(path: string, defaultValue: unknown): Promise<void> {
     const filePath = `${DATA_DIR}/${path}`;
     try {
-      const content = await readTextFile(filePath);
+      const content = await Deno.readTextFile(filePath);
       this.cache.set(path, JSON.parse(content));
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        // File doesn't exist, create it with default value
         this.cache.set(path, defaultValue);
         await this.write(path, defaultValue);
       } else {
@@ -48,13 +45,12 @@ class JSONStorage {
     const filePath = `${DATA_DIR}/${path}`;
     const dir = filePath.substring(0, filePath.lastIndexOf("/"));
     await ensureDir(dir);
-    await writeTextFile(filePath, JSON.stringify(data, null, 2));
+    await Deno.writeTextFile(filePath, JSON.stringify(data, null, 2));
   }
 }
 
 export const storage = new JSONStorage();
 
-// Initialize storage files
 await storage.initialize([
   { path: "events.json", defaultValue: [] },
   { path: "members.json", defaultValue: [] },

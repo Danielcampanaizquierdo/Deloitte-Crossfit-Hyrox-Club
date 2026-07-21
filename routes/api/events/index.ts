@@ -1,37 +1,29 @@
-import { FreshContext } from "$fresh/server.ts";
-import { eventService } from "../../services/eventService.ts";
+import { Handlers } from "$fresh/server.ts";
+import { eventService } from "../../../services/eventService.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/events - Get all events
-  async GET(_req: Request, _ctx: FreshContext) {
-    try {
-      const events = await eventService.getAll();
-      return new Response(JSON.stringify(events), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+export const handler: Handlers<unknown, State> = {
+  async POST(req, ctx) {
+    if (!ctx.state.isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
-  },
+    let body: Record<string, string>;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ error: "JSON inválido" }, { status: 400 });
+    }
 
-  // POST /api/events - Create event
-  async POST(req: Request, _ctx: FreshContext) {
-    try {
-      const data = await req.json();
-      const event = await eventService.create(data);
-      return new Response(JSON.stringify(event), {
-        status: 201,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    const { title, date, location, description, type } = body;
+    if (!title || !date || !location || !description) {
+      return Response.json(
+        { error: "Campos requeridos: title, date, location, description" },
+        { status: 400 },
+      );
     }
+
+    const event = await eventService.create({ title, date, location, description, type });
+    const approved = await eventService.update(event.id, { approved: true });
+    return Response.json(approved, { status: 201 });
   },
 };

@@ -1,21 +1,30 @@
-// Type definitions for events
 export interface Event {
   id: string;
   title: string;
-  description: string;
   date: Date;
   location: string;
+  description: string;
   attendees: number;
-  image?: string;
+  type?: string;
+  approved: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface CreateEventRequest {
   title: string;
-  description: string;
   date: string;
   location: string;
+  description: string;
+  type?: string;
 }
 
-export interface UpdateEventRequest extends Partial<CreateEventRequest> {}
+export interface UpdateEventRequest {
+  title?: string;
+  date?: string;
+  location?: string;
+  description?: string;
+  type?: string;
+  attendees?: number;
+  approved?: boolean;
+}

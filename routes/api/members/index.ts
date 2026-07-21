@@ -1,50 +1,44 @@
-import { FreshContext } from "$fresh/server.ts";
-import { memberService } from "../../services/memberService.ts";
+import { Handlers } from "$fresh/server.ts";
+import { memberService } from "../../../services/memberService.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/members - Get all approved members
-  async GET(_req: Request, _ctx: FreshContext) {
+export const handler: Handlers<unknown, State> = {
+  async POST(req, _ctx) {
+    let body: Record<string, string>;
     try {
-      const url = new URL(_req.url);
-      const search = url.searchParams.get("search") || "";
-      const level = url.searchParams.get("level");
-      const goal = url.searchParams.get("goal");
-
-      if (search) {
-        const members = await memberService.search(search, level || undefined, goal || undefined);
-        return new Response(JSON.stringify(members), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-
-      const members = await memberService.getApproved();
-      return new Response(JSON.stringify(members), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      body = await req.json();
+    } catch {
+      return Response.json({ error: "JSON inválido" }, { status: 400 });
     }
-  },
 
-  // POST /api/members - Create member
-  async POST(req: Request, _ctx: FreshContext) {
-    try {
-      const data = await req.json();
-      const member = await memberService.create(data);
-      return new Response(JSON.stringify(member), {
-        status: 201,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    const { name, email, level, goal, location } = body;
+    if (!name || !email || !level || !goal || !location) {
+      return Response.json(
+        { error: "Campos requeridos: name, email, level, goal, location" },
+        { status: 400 },
+      );
     }
+    if (!["beginner", "intermediate", "advanced"].includes(level)) {
+      return Response.json({ error: "level inválido" }, { status: 400 });
+    }
+    if (!["crossfit", "hyrox", "general"].includes(goal)) {
+      return Response.json({ error: "goal inválido" }, { status: 400 });
+    }
+
+    const existing = await memberService.getByEmail(email);
+    if (existing) {
+      return Response.json({ error: "Ya existe un perfil con ese email" }, { status: 409 });
+    }
+
+    const member = await memberService.create({
+      name,
+      email,
+      level: level as "beginner" | "intermediate" | "advanced",
+      goal: goal as "crossfit" | "hyrox" | "general",
+      location,
+      bio: body.bio,
+    });
+
+    return Response.json(member, { status: 201 });
   },
 };

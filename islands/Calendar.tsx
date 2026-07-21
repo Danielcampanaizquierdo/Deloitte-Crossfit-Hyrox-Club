@@ -1,62 +1,63 @@
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 
-interface CalendarEvent {
-  date: number;
+interface CalEvent {
+  id: string;
   title: string;
+  date: string;
 }
 
-const events: Record<number, CalendarEvent[]> = {
-  12: [{ date: 12, title: "Entreno DEKA" }],
-  19: [{ date: 19, title: "HYROX Team" }],
-};
+interface Props {
+  events: CalEvent[];
+}
 
-export default function Calendar() {
+export default function Calendar({ events }: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
+  const eventsByDay: Record<number, CalEvent[]> = {};
+  for (const ev of events) {
+    const d = new Date(ev.date);
+    if (
+      d.getFullYear() === currentMonth.getFullYear() &&
+      d.getMonth() === currentMonth.getMonth()
+    ) {
+      const day = d.getDate();
+      if (!eventsByDay[day]) eventsByDay[day] = [];
+      eventsByDay[day].push(ev);
+    }
+  }
 
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
+  const getDaysInMonth = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 
-  const handlePrevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
-  };
+  const getFirstDayOfMonth = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
-  const handleNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-  };
+  const handlePrevMonth = () =>
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
+    );
+
+  const handleNextMonth = () =>
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
+    );
 
   const days: (number | null)[] = [];
   const firstDay = getFirstDayOfMonth(currentMonth);
   const daysInMonth = getDaysInMonth(currentMonth);
 
-  // Add empty slots for days before month starts
-  for (let i = 0; i < firstDay; i++) {
-    days.push(null);
-  }
-
-  // Add days of the month
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push(i);
-  }
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
   const monthNames = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
   ];
+
+  const openSignup = () => {
+    const modal = document.getElementById("signupModal");
+    if (modal) modal.style.display = "flex";
+  };
 
   return (
     <div class="calendar">
@@ -82,13 +83,13 @@ export default function Calendar() {
             {day && (
               <>
                 <div class="day">{day}</div>
-                {events[day]?.map((event) => (
+                {eventsByDay[day]?.map((ev) => (
                   <button
-                    key={event.title}
+                    key={ev.id}
                     class="event-chip"
-                    onclick={() => alert(`Signup for ${event.title}`)}
+                    onClick={openSignup}
                   >
-                    {event.title}
+                    {ev.title}
                   </button>
                 ))}
               </>

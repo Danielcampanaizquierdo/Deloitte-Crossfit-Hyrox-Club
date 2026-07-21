@@ -1,19 +1,10 @@
-// Type definitions for PRs (Personal Records)
-export type Movement = 
-  | "clean_and_jerk"
-  | "snatch"
-  | "deadlift"
-  | "squat"
-  | "bench_press"
-  | "back_squat"
-  | "front_squat";
-
 export interface PR {
   id: string;
   memberId: string;
   memberName: string;
-  movement: Movement;
-  weight: number; // in kg
+  memberEmail: string;
+  movement: string;
+  weight: number;
   date: Date;
   approved: boolean;
   createdAt: Date;
@@ -21,10 +12,17 @@ export interface PR {
 }
 
 export interface CreatePRRequest {
-  memberId: string;
-  movement: Movement;
+  memberId?: string;
+  memberName: string;
+  memberEmail: string;
+  movement: string;
   weight: number;
   date: string;
 }
 
-export interface UpdatePRRequest extends Partial<CreatePRRequest> {}
+export interface UpdatePRRequest {
+  movement?: string;
+  weight?: number;
+  date?: string;
+  approved?: boolean;
+}

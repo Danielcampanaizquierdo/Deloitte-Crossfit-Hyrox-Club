@@ -1,18 +1,13 @@
-// Type definitions for members
-export type MemberLevel = "beginner" | "intermediate" | "advanced";
-export type MemberGoal = "crossfit" | "hyrox" | "general";
-
 export interface Member {
   id: string;
   name: string;
   email: string;
-  level: MemberLevel;
-  goal: MemberGoal;
+  level: "beginner" | "intermediate" | "advanced";
+  goal: "crossfit" | "hyrox" | "general";
   location: string;
-  avatar?: string;
   bio?: string;
-  joinedAt: Date;
   approved: boolean;
+  joinedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,10 +15,18 @@ export interface Member {
 export interface CreateMemberRequest {
   name: string;
   email: string;
-  level: MemberLevel;
-  goal: MemberGoal;
+  level: "beginner" | "intermediate" | "advanced";
+  goal: "crossfit" | "hyrox" | "general";
   location: string;
   bio?: string;
 }
 
-export interface UpdateMemberRequest extends Partial<CreateMemberRequest> {}
+export interface UpdateMemberRequest {
+  name?: string;
+  email?: string;
+  level?: "beginner" | "intermediate" | "advanced";
+  goal?: "crossfit" | "hyrox" | "general";
+  location?: string;
+  bio?: string;
+  approved?: boolean;
+}

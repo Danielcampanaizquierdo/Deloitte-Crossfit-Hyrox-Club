@@ -1,10 +1,14 @@
 # Deloitte CrossFit HYROX Club - Deno Fresh Migration
 
-Conversión de la página web estática HTML a una aplicación web moderna usando Deno Fresh con backend API completo.
+Deployment setup: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+Conversión de la página web estática HTML a una aplicación web moderna usando
+Deno Fresh con backend API completo.
 
 ## 🚀 Quick Start
 
 ### Requisitos
+
 - [Deno](https://deno.land/) 1.40+
 
 ### Instalación y desarrollo
@@ -80,6 +84,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ### Backend API
 
 #### Events API
+
 - `GET /api/events` - Obtener todos los eventos
 - `GET /api/events/upcoming` - Próximos eventos
 - `GET /api/events/[id]` - Detalle del evento
@@ -88,6 +93,7 @@ La aplicación estará disponible en `http://localhost:8000`
 - `DELETE /api/events/[id]` - Eliminar evento
 
 #### Members API
+
 - `GET /api/members` - Miembros aprobados (con búsqueda/filtros)
 - `GET /api/members/[id]` - Detalle del miembro
 - `GET /api/members/pending` - Miembros pendientes (admin)
@@ -96,6 +102,7 @@ La aplicación estará disponible en `http://localhost:8000`
 - `DELETE /api/members/[id]` - Eliminar miembro
 
 #### PRs API
+
 - `GET /api/prs` - PRs aprobados (con filtros por movimiento)
 - `GET /api/prs/[id]` - Detalle del PR
 - `GET /api/prs/pending` - PRs pendientes (admin)
@@ -103,6 +110,7 @@ La aplicación estará disponible en `http://localhost:8000`
 - `DELETE /api/prs/[id]` - Eliminar PR
 
 #### Results API
+
 - `GET /api/results` - Resultados aprobados
 - `GET /api/results/[id]` - Detalle del resultado
 - `GET /api/results/pending` - Resultados pendientes (admin)
@@ -110,12 +118,14 @@ La aplicación estará disponible en `http://localhost:8000`
 - `DELETE /api/results/[id]` - Eliminar resultado
 
 #### Signups API
+
 - `GET /api/signups` - Todos los signups (con filtro por evento)
 - `GET /api/signups/[id]` - Detalle del signup
 - `POST /api/signups` - Crear signup (apuntarse)
 - `DELETE /api/signups/[id]` - Cancelar signup
 
 #### Admin API
+
 - `POST /api/admin/members/[id]/approve` - Aprobar miembro
 - `POST /api/admin/prs/[id]/approve` - Aprobar PR
 - `POST /api/admin/results/[id]/approve` - Aprobar resultado
@@ -131,6 +141,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ### Frontend Integration
 
 ✅ **Formularios funcionales**
+
 - EventFormModal - Crear eventos con API
 - MemberFormModal - Crear miembros con API
 - SignupFormModal - Apuntarse a eventos
@@ -138,12 +149,14 @@ La aplicación estará disponible en `http://localhost:8000`
 - ResultFormModal - Registrar resultados
 
 ✅ **Admin Panel**
+
 - Aprobar/rechazar miembros pendientes
 - Aprobar/rechazar PRs
 - Aprobar/rechazar resultados
 - Sistema de autenticación con passcode
 
 ✅ **Cliente HTTP**
+
 - `api.get()` - Peticiones GET
 - `api.post()` - Peticiones POST
 - `api.put()` - Peticiones PUT
@@ -153,6 +166,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ## 📊 Data Models
 
 ### Event
+
 ```typescript
 {
   id: string;
@@ -168,6 +182,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ```
 
 ### Member
+
 ```typescript
 {
   id: string;
@@ -186,6 +201,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ```
 
 ### PR (Personal Record)
+
 ```typescript
 {
   id: string;
@@ -201,6 +217,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ```
 
 ### CompetitionResult
+
 ```typescript
 {
   id: string;
@@ -221,6 +238,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ```
 
 ### EventSignup
+
 ```typescript
 {
   id: string;
@@ -236,6 +254,7 @@ La aplicación estará disponible en `http://localhost:8000`
 ## 🔄 Workflow
 
 ### Crear Evento
+
 1. User rellena formulario en modal
 2. `EventFormModal` hace POST a `/api/events`
 3. `eventService.create()` procesa los datos
@@ -243,6 +262,7 @@ La aplicación estará disponible en `http://localhost:8000`
 5. Página se recarga con el nuevo evento
 
 ### Apuntarse a Evento
+
 1. User rellena formulario de signup
 2. `SignupFormModal` hace POST a `/api/signups`
 3. `signupService.create()` valida no duplicados
@@ -250,6 +270,7 @@ La aplicación estará disponible en `http://localhost:8000`
 5. Confirmación visual
 
 ### Admin Approving
+
 1. Admin ve items pendientes en sección Admin
 2. Click en "Approve" → POST `/api/admin/{type}/{id}/approve`
 3. Service marca item como `approved: true`
@@ -329,24 +350,28 @@ curl -X POST http://localhost:8000/api/signups \
 ## 📈 Próximas Fases
 
 ### Fase 3: Database Integration
+
 - [ ] PostgreSQL o MongoDB
 - [ ] Connection pooling
 - [ ] Migrations
 - [ ] Reemplazar in-memory con queries reales
 
 ### Fase 4: Authentication
+
 - [ ] User login/register
 - [ ] JWT tokens
 - [ ] Role-based access (user, admin)
 - [ ] Session management
 
 ### Fase 5: File Upload
+
 - [ ] Image upload para eventos
 - [ ] Image upload para results
 - [ ] Avatar upload para miembros
 - [ ] AWS S3 o similar
 
 ### Fase 6: Advanced Features
+
 - [ ] Email notifications
 - [ ] Leaderboard rankings
 - [ ] Statistics dashboard
@@ -356,14 +381,17 @@ curl -X POST http://localhost:8000/api/signups \
 ## 📝 Datos de Prueba
 
 ### Admin
+
 - **Passcode**: ClubAdmin2026
 
 ### Miembros de prueba
+
 - Demo Athlete (Intermediate, CrossFit/HYROX) - APPROVED
 - Member B (Advanced, Strength) - APPROVED
 - Member C (Beginner, HYROX) - PENDING
 
 ### Eventos de prueba
+
 - Entreno DEKA - 12 Jul 2026 10:00
 - HYROX Team Session - 19 Jul 2026 09:30
 
