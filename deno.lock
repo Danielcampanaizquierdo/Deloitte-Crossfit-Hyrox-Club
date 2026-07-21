@@ -426,7 +426,9 @@
     "https://esm.sh/preact@10.19.3/denonext/debug.mjs": "4888a6858d3f80f6345bb88588cff489e7c1b6b3789201588a598f835a8291ca",
     "https://esm.sh/preact@10.19.3/denonext/devtools.mjs": "3decc53d1387680eb2709cdf7676cc40a382dc059b76a701adc4b9d4224a9edd",
     "https://esm.sh/preact@10.19.3/denonext/hooks.mjs": "1e6dcdc31a6d4c4fecf1665538f892bb33bbee8fee0f3c664b9db5362871849f",
+    "https://esm.sh/preact@10.19.3/denonext/jsx-runtime.mjs": "a151a1f662b5e3023385100c46e2c4142489d3b982cb094a08af8a3ca7b30c1d",
     "https://esm.sh/preact@10.19.3/denonext/preact.mjs": "6233d303372951bb69428bcd7fd4a6617fc721edee334f228ae8b2e5ab6a2e7f",
-    "https://esm.sh/preact@10.19.3/hooks": "ec6d1409b12bce994ec7f0711b17e41424e339727af83fb471acc63952e35278"
+    "https://esm.sh/preact@10.19.3/hooks": "ec6d1409b12bce994ec7f0711b17e41424e339727af83fb471acc63952e35278",
+    "https://esm.sh/preact@10.19.3/jsx-runtime": "c0a489946b2a492ed590365ce1dbb2606adef27635722687b7d6320f57faf435"
   }
 }
