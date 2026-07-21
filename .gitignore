@@ -27,3 +27,6 @@ _fresh/
 
 # Local data store (JSON files with user-generated content)
 data/
+
+# Local Git worktrees
+.worktrees/
