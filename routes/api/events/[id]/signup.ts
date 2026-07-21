@@ -29,7 +29,6 @@ export const handler: Handlers<unknown, State> = {
         memberEmail,
         comments,
       });
-      await eventService.addAttendee(ctx.params.id);
       return Response.json(signup, { status: 201 });
     } catch (err) {
       if (err instanceof Error && err.message.includes("Already signed up")) {

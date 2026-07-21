@@ -1,68 +1,51 @@
 import { CompetitionResult, CreateResultRequest, UpdateResultRequest } from "../types/Result.ts";
-import { storage } from "../lib/storage.ts";
+import {
+  createResultRepository,
+  ResultRepository,
+} from "../repositories/resultRepository.ts";
+import { kv } from "../lib/kv.ts";
 
-const STORAGE_FILE = "results.json";
+// Pure factory: takes a ResultRepository so tests can build this service
+// against an isolated :memory: KV (see services/services_kv_test.ts).
+export function createResultService(repo: ResultRepository) {
+  return {
+    async getAll(): Promise<CompetitionResult[]> {
+      return repo.list();
+    },
 
-export const resultService = {
-  async getAll(): Promise<CompetitionResult[]> {
-    return await storage.read(STORAGE_FILE);
-  },
+    async getApproved(): Promise<CompetitionResult[]> {
+      return repo.listApproved();
+    },
 
-  async getApproved(): Promise<CompetitionResult[]> {
-    const results = await this.getAll();
-    return results.filter((r) => r.approved);
-  },
+    async getPending(): Promise<CompetitionResult[]> {
+      return repo.listPending();
+    },
 
-  async getPending(): Promise<CompetitionResult[]> {
-    const results = await this.getAll();
-    return results.filter((r) => !r.approved);
-  },
+    async getById(id: string): Promise<CompetitionResult | null> {
+      return repo.get(id);
+    },
 
-  async getById(id: string): Promise<CompetitionResult | null> {
-    const results = await this.getAll();
-    return results.find((r) => r.id === id) || null;
-  },
+    async create(data: CreateResultRequest): Promise<CompetitionResult> {
+      return repo.create(data);
+    },
 
-  async create(data: CreateResultRequest): Promise<CompetitionResult> {
-    const results = await this.getAll();
-    const result: CompetitionResult = {
-      id: `res-${Date.now()}`,
-      ...data,
-      date: new Date(data.date),
-      approved: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    results.push(result);
-    await storage.write(STORAGE_FILE, results);
-    return result;
-  },
+    async update(
+      id: string,
+      data: UpdateResultRequest,
+    ): Promise<CompetitionResult | null> {
+      return repo.update(id, data);
+    },
 
-  async update(id: string, data: UpdateResultRequest): Promise<CompetitionResult | null> {
-    const results = await this.getAll();
-    const index = results.findIndex((r) => r.id === id);
-    if (index === -1) return null;
-    const updated: CompetitionResult = {
-      ...results[index],
-      ...data,
-      date: data.date ? new Date(data.date) : results[index].date,
-      updatedAt: new Date(),
-    };
-    results[index] = updated;
-    await storage.write(STORAGE_FILE, results);
-    return updated;
-  },
+    async delete(id: string): Promise<boolean> {
+      return repo.delete(id);
+    },
 
-  async delete(id: string): Promise<boolean> {
-    const results = await this.getAll();
-    const index = results.findIndex((r) => r.id === id);
-    if (index === -1) return false;
-    results.splice(index, 1);
-    await storage.write(STORAGE_FILE, results);
-    return true;
-  },
+    async approve(id: string): Promise<CompetitionResult | null> {
+      return repo.approve(id);
+    },
+  };
+}
 
-  async approve(id: string): Promise<CompetitionResult | null> {
-    return this.update(id, { approved: true });
-  },
-};
+// Production singleton: binds to the app-lifetime KV connection once at
+// module load. Deno/Fresh support top-level await in ES modules.
+export const resultService = createResultService(createResultRepository(await kv));

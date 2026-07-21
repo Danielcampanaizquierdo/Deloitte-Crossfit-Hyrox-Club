@@ -47,6 +47,7 @@ function generateId(): string {
 
 export interface SignupRepository {
   get(id: string): Promise<EventSignup | null>;
+  list(): Promise<EventSignup[]>;
   listByEvent(eventId: string): Promise<EventSignup[]>;
   listByMember(memberId: string): Promise<EventSignup[]>;
   // Returns null when the referenced event does not exist.
@@ -58,6 +59,18 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
   async function get(id: string): Promise<EventSignup | null> {
     const entry = await kv.get<EventSignup>(signupKey(id));
     return entry.value;
+  }
+
+  // Added in Task 6 (not part of Task 5's original design) so that
+  // signupService.getAll() — used by routes/api/signups/index.ts — has a
+  // repository method to call, following the same style as list() in
+  // eventRepository.ts/memberRepository.ts.
+  async function list(): Promise<EventSignup[]> {
+    const signups: EventSignup[] = [];
+    for await (const entry of kv.list<EventSignup>({ prefix: ["signups"] })) {
+      if (entry.value) signups.push(entry.value);
+    }
+    return signups;
   }
 
   async function listByEvent(eventId: string): Promise<EventSignup[]> {
@@ -184,6 +197,7 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
 
   return {
     get,
+    list,
     listByEvent,
     listByMember,
     create,

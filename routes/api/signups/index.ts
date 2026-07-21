@@ -1,6 +1,5 @@
 import { FreshContext } from "$fresh/server.ts";
 import { signupService } from "../../services/signupService.ts";
-import { eventService } from "../../services/eventService.ts";
 
 export const handler = {
   // GET /api/signups - Get all signups
@@ -35,8 +34,6 @@ export const handler = {
     try {
       const data = await req.json();
       const signup = await signupService.create(data);
-      // Increment event attendee count
-      await eventService.addAttendee(data.eventId);
       return new Response(JSON.stringify(signup), {
         status: 201,
         headers: { "Content-Type": "application/json" },
