@@ -37,3 +37,15 @@ export interface UpdatePRRequest {
   date?: string;
   approved?: boolean;
 }
+
+/** Public leaderboard shape. Internal attribution fields stay server-side. */
+export type PublicPR = Omit<PR, "memberId" | "memberEmail">;
+
+export function toPublicPR(pr: PR): PublicPR {
+  const { memberId: _memberId, memberEmail: _memberEmail, ...safe } = pr;
+  return safe;
+}
+
+export function toPublicPRs(prs: PR[]): PublicPR[] {
+  return prs.map(toPublicPR);
+}

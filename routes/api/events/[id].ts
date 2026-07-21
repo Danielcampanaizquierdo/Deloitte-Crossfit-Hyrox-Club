@@ -1,75 +1,63 @@
-import { FreshContext } from "$fresh/server.ts";
-import { errorMessage } from "../../../lib/errors.ts";
+import { Handlers } from "$fresh/server.ts";
 import { eventService } from "../../../services/eventService.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/events/[id] - Get event by ID
-  async GET(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const event = await eventService.getById(id);
-      if (!event) {
-        return new Response(JSON.stringify({ error: "Event not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify(event), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+export const handler: Handlers<unknown, State> = {
+  async GET(_req, ctx) {
+    const event = await eventService.getById(ctx.params.id);
+    // An unapproved event is not public yet.
+    if (!event || (!event.approved && !ctx.state.isAdmin)) {
+      return Response.json({ error: "Event not found" }, { status: 404 });
     }
+    return Response.json(event);
   },
 
-  // PUT /api/events/[id] - Update event
-  async PUT(req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const data = await req.json();
-      const event = await eventService.update(id, data);
-      if (!event) {
-        return new Response(JSON.stringify({ error: "Event not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify(event), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+  // Scheduling is a club decision, so editing and deleting are admin-only.
+  // Both were previously open to anyone with the event id.
+  async PUT(req, ctx) {
+    if (!ctx.state.isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ error: "JSON inválido" }, { status: 400 });
+    }
+
+    // Whitelisted so a request cannot rewrite the attendee counter, which the
+    // signup transaction owns.
+    const allowed: Record<string, unknown> = {};
+    for (
+      const field of [
+        "title",
+        "date",
+        "location",
+        "description",
+        "type",
+        "capacity",
+        "approved",
+      ]
+    ) {
+      if (body[field] !== undefined) allowed[field] = body[field];
+    }
+
+    const event = await eventService.update(ctx.params.id, allowed);
+    if (!event) {
+      return Response.json({ error: "Event not found" }, { status: 404 });
+    }
+    return Response.json(event);
   },
 
-  // DELETE /api/events/[id] - Delete event
-  async DELETE(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const success = await eventService.delete(id);
-      if (!success) {
-        return new Response(JSON.stringify({ error: "Event not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ message: "Event deleted" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+  async DELETE(_req, ctx) {
+    if (!ctx.state.isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+    const success = await eventService.delete(ctx.params.id);
+    if (!success) {
+      return Response.json({ error: "Event not found" }, { status: 404 });
+    }
+    return Response.json({ message: "Event deleted" });
   },
 };

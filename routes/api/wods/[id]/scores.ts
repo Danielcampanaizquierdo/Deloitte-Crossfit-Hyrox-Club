@@ -2,14 +2,26 @@ import { Handlers } from "$fresh/server.ts";
 import { wodService } from "../../../../services/wodService.ts";
 import { parseTimeToSeconds } from "../../../../lib/movements.ts";
 import { State } from "../../../../types/State.ts";
+import {
+  toPublicWodScore,
+  toPublicWodScores,
+} from "../../../../types/Wod.ts";
 
 export const handler: Handlers<unknown, State> = {
   async GET(_req, ctx) {
     const scores = await wodService.getScoresByWod(ctx.params.id);
-    return Response.json(scores.filter((s) => s.approved));
+    return Response.json(toPublicWodScores(scores.filter((s) => s.approved)));
   },
 
   async POST(req, ctx) {
+    const member = ctx.state.member;
+    if (!member) {
+      return Response.json(
+        { error: "Inicia sesión para registrar tu score" },
+        { status: 401 },
+      );
+    }
+
     let body: Record<string, unknown>;
     try {
       body = await req.json();
@@ -17,10 +29,10 @@ export const handler: Handlers<unknown, State> = {
       return Response.json({ error: "JSON inválido" }, { status: 400 });
     }
 
-    const { memberName, memberEmail, value } = body as Record<string, string>;
-    if (!memberName || !memberEmail || value === undefined || value === "") {
+    const { value } = body as Record<string, string>;
+    if (value === undefined || value === "") {
       return Response.json(
-        { error: "Campos requeridos: memberName, memberEmail, value" },
+        { error: "Campo requerido: value" },
         { status: 400 },
       );
     }
@@ -52,10 +64,13 @@ export const handler: Handlers<unknown, State> = {
     }
 
     try {
+      // Attribution comes from the session, so a score can only be logged
+      // under the logged-in member's own name.
       const score = await wodService.createScore({
         wodId: ctx.params.id,
-        memberName,
-        memberEmail,
+        memberId: member.id,
+        memberName: member.name,
+        memberEmail: member.email,
         value: numericValue,
         scaled: body.scaled === true || body.scaled === "true",
         notes: typeof body.notes === "string" ? body.notes : undefined,
@@ -63,7 +78,7 @@ export const handler: Handlers<unknown, State> = {
       if (!score) {
         return Response.json({ error: "WOD no encontrado" }, { status: 404 });
       }
-      return Response.json(score, { status: 201 });
+      return Response.json(toPublicWodScore(score), { status: 201 });
     } catch (err) {
       if (err instanceof Error && err.message.includes("Already scored")) {
         return Response.json(

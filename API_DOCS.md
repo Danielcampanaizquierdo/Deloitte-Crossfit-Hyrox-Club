@@ -501,6 +501,63 @@ a mayor, los pesos y repeticiones de mayor a menor.
 Los PRs guardados antes de que existiera `metric` no lo llevan y se interpretan
 como `weight`, que es lo que siempre fueron.
 
+## Autenticación de miembros
+
+Hasta ahora la identidad de un atleta era simplemente lo que escribía en el
+formulario, así que cualquiera podía reservar, publicar un PR o registrar un
+score en nombre de otro — y cancelar la reserva ajena sabiendo su email. Ahora
+las cuentas tienen contraseña y las acciones van firmadas por la sesión.
+
+#### POST /auth/register
+Crea una cuenta. Requiere `password` (mínimo 8 caracteres), que se almacena como
+hash PBKDF2-SHA256 con salt propio. La cuenta queda **pendiente de aprobación**;
+no se emite sesión.
+
+#### POST /auth/login
+`{ email, password }`. Devuelve **401** con el mismo mensaje tanto si el email no
+existe como si la contraseña es incorrecta, para no revelar qué direcciones
+están registradas. Devuelve **403** si la cuenta aún no está aprobada. Con éxito
+emite una cookie `member_session` (HttpOnly, SameSite=Lax).
+
+#### POST /auth/logout
+Cierra la sesión del miembro.
+
+#### GET /auth/me
+Devuelve `{ member }` con la sesión actual, o `{ member: null }`.
+
+### Acciones que ahora exigen sesión
+
+| Acción | Endpoint |
+|---|---|
+| Reservar plaza | `POST /events/{id}/signup` |
+| Cancelar reserva | `POST /events/{id}/cancel` |
+| Registrar PR | `POST /prs` |
+| Registrar score de WOD | `POST /wods/{id}/scores` |
+
+Todas responden **401** sin sesión. **La identidad se toma siempre de la sesión,
+nunca del cuerpo de la petición**: enviar `memberName`/`memberEmail` no tiene
+ningún efecto, la acción se atribuye a quien ha iniciado sesión. Cancelar ya no
+acepta un email — libera la plaza de quien la pide.
+
+### Endpoints retirados
+
+- `POST /members` → **410**. Creaba cuentas sin credenciales. Usa
+  `POST /auth/register`.
+- `POST /signups` → **410**. Aceptaba nombre y email arbitrarios. Usa
+  `POST /events/{id}/signup`.
+
+### Permisos revisados
+
+`PUT`/`DELETE /members/{id}` estaban abiertos a cualquiera: se podía editar el
+perfil ajeno, auto-aprobarse o sobrescribir el hash de contraseña de otro. Ahora
+requieren ser ese miembro o un admin, y sólo se aceptan campos concretos —
+`approved` únicamente desde una sesión de admin. Lo mismo se corrigió en
+`PUT`/`DELETE /events/{id}` (ahora admin), `DELETE /prs/{id}` (autor o admin),
+`DELETE /results/{id}` (admin), `DELETE /signups/{id}` (titular o admin) y
+`GET /signups` y `GET /members/pending` (admin).
+
+Ninguna respuesta incluye `passwordHash` ni `passwordSalt`.
+
 ## Status Codes
 
 - **200 OK** - Éxito

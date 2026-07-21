@@ -100,6 +100,28 @@ button,input,textarea,select{font-family:inherit}
 @media(min-width:700px){.status{display:flex}}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite}
 
+/* ── Account bar ────────────────────────────────────────────────────── */
+.authbar{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:-18px 0 22px}
+.authbar-who{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:#d4d4d4}
+.authbar-avatar{
+  width:28px;height:28px;border-radius:9px;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--green),var(--green2));color:#000;
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;
+}
+/* Identity shown inside a form instead of name/email inputs. */
+.as-member{
+  display:flex;align-items:center;gap:11px;border:1px solid rgba(134,188,37,.35);
+  background:var(--green-dim);border-radius:12px;padding:10px 13px;
+}
+.as-member b{display:block;font-size:13px}
+.as-member small{display:block;color:var(--muted);font-size:12px}
+.form-alt{margin:2px 0 0;font-size:13px;color:var(--muted);text-align:center}
+.linkbtn{
+  border:0;background:none;padding:0;color:var(--green);font:inherit;font-weight:800;
+  cursor:pointer;text-decoration:underline;
+}
+.linkbtn:hover{color:var(--green2)}
+
 /* ── Hero ───────────────────────────────────────────────────────────── */
 .hero{display:grid;gap:26px;align-items:center;margin-bottom:30px}
 @media(min-width:900px){.hero{grid-template-columns:1.08fr .92fr}}

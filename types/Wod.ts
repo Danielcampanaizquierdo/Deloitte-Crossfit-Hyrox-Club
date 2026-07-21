@@ -43,6 +43,9 @@ export interface UpdateWodRequest {
 export interface WodScore {
   id: string;
   wodId: string;
+  /** Stable owner id for authorization and duplicate prevention. Older
+   * persisted scores may not have it and fall back to the legacy email key. */
+  memberId?: string;
   memberName: string;
   memberEmail: string;
   /** Numeric score in the unit implied by the WOD's scoreType: seconds for
@@ -57,11 +60,33 @@ export interface WodScore {
 
 export interface CreateWodScoreRequest {
   wodId: string;
+  memberId?: string;
   memberName: string;
   memberEmail: string;
   value: number;
   scaled?: boolean;
   notes?: string;
+}
+
+/** Notes can contain health context and email is private. Neither belongs on
+ * the public WOD leaderboard. */
+export type PublicWodScore = Omit<
+  WodScore,
+  "memberId" | "memberEmail" | "notes"
+>;
+
+export function toPublicWodScore(score: WodScore): PublicWodScore {
+  const {
+    memberId: _memberId,
+    memberEmail: _memberEmail,
+    notes: _notes,
+    ...safe
+  } = score;
+  return safe;
+}
+
+export function toPublicWodScores(scores: WodScore[]): PublicWodScore[] {
+  return scores.map(toPublicWodScore);
 }
 
 export const WOD_FORMAT_LABELS: Record<WodFormat, string> = {

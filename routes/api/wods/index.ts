@@ -2,13 +2,20 @@ import { Handlers } from "$fresh/server.ts";
 import { wodService } from "../../../services/wodService.ts";
 import type { WodFormat, WodScoreType } from "../../../types/Wod.ts";
 import { State } from "../../../types/State.ts";
+import { toPublicWodScores } from "../../../types/Wod.ts";
 
 const FORMATS: WodFormat[] = ["amrap", "for_time", "emom", "strength", "hyrox"];
 const SCORE_TYPES: WodScoreType[] = ["reps", "rounds", "time", "weight"];
 
 export const handler: Handlers<unknown, State> = {
   async GET(_req, _ctx) {
-    return Response.json(await wodService.getBoard());
+    const board = await wodService.getBoard();
+    return Response.json(
+      board.map((wod) => ({
+        ...wod,
+        scores: toPublicWodScores(wod.scores),
+      })),
+    );
   },
 
   async POST(req, ctx) {

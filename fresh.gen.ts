@@ -9,6 +9,10 @@ import * as $api_admin_logout from "./routes/api/admin/logout.ts";
 import * as $api_admin_members_id_approve from "./routes/api/admin/members/[id]/approve.ts";
 import * as $api_admin_prs_id_approve from "./routes/api/admin/prs/[id]/approve.ts";
 import * as $api_admin_results_id_approve from "./routes/api/admin/results/[id]/approve.ts";
+import * as $api_auth_login from "./routes/api/auth/login.ts";
+import * as $api_auth_logout from "./routes/api/auth/logout.ts";
+import * as $api_auth_me from "./routes/api/auth/me.ts";
+import * as $api_auth_register from "./routes/api/auth/register.ts";
 import * as $api_events_id_ from "./routes/api/events/[id].ts";
 import * as $api_events_id_approve from "./routes/api/events/[id]/approve.ts";
 import * as $api_events_id_attendees from "./routes/api/events/[id]/attendees.ts";
@@ -44,6 +48,7 @@ import * as $AdminSection from "./islands/AdminSection.tsx";
 import * as $EventsSection from "./islands/EventsSection.tsx";
 import * as $Hero from "./islands/Hero.tsx";
 import * as $LeaderboardSection from "./islands/LeaderboardSection.tsx";
+import * as $MemberAuth from "./islands/MemberAuth.tsx";
 import * as $MembersSection from "./islands/MembersSection.tsx";
 import * as $TabNavigation from "./islands/TabNavigation.tsx";
 import * as $WodSection from "./islands/WodSection.tsx";
@@ -58,6 +63,10 @@ const manifest = {
     "./routes/api/admin/members/[id]/approve.ts": $api_admin_members_id_approve,
     "./routes/api/admin/prs/[id]/approve.ts": $api_admin_prs_id_approve,
     "./routes/api/admin/results/[id]/approve.ts": $api_admin_results_id_approve,
+    "./routes/api/auth/login.ts": $api_auth_login,
+    "./routes/api/auth/logout.ts": $api_auth_logout,
+    "./routes/api/auth/me.ts": $api_auth_me,
+    "./routes/api/auth/register.ts": $api_auth_register,
     "./routes/api/events/[id].ts": $api_events_id_,
     "./routes/api/events/[id]/approve.ts": $api_events_id_approve,
     "./routes/api/events/[id]/attendees.ts": $api_events_id_attendees,
@@ -95,6 +104,7 @@ const manifest = {
     "./islands/EventsSection.tsx": $EventsSection,
     "./islands/Hero.tsx": $Hero,
     "./islands/LeaderboardSection.tsx": $LeaderboardSection,
+    "./islands/MemberAuth.tsx": $MemberAuth,
     "./islands/MembersSection.tsx": $MembersSection,
     "./islands/TabNavigation.tsx": $TabNavigation,
     "./islands/WodSection.tsx": $WodSection,

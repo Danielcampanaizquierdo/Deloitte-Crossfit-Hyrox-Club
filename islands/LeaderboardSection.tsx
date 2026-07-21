@@ -4,6 +4,8 @@ import { Fragment, h } from "preact";
 import { useMemo, useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
 import { toast } from "../lib/toast.ts";
+import { emit, OPEN_LOGIN } from "../lib/bus.ts";
+import type { SessionMember } from "./MemberAuth.tsx";
 import {
   formatPRValue,
   isHigherBetter,
@@ -28,6 +30,7 @@ export interface PRItem {
 
 interface Props {
   prs: PRItem[];
+  member: SessionMember | null;
 }
 
 const CATEGORIES: (MovementCategory | "Todos")[] = [
@@ -40,11 +43,21 @@ const CATEGORIES: (MovementCategory | "Todos")[] = [
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-export default function LeaderboardSection({ prs: initial }: Props) {
-  const [prs, setPrs] = useState(initial);
+export default function LeaderboardSection({ prs: initial, member }: Props) {
+  const [prs] = useState(initial);
   const [category, setCategory] = useState<MovementCategory | "Todos">("Todos");
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+
+  /** A PR is filed under the session's identity, so an account is required. */
+  const requestForm = () => {
+    if (!member) {
+      toast("Inicia sesión para registrar tu PR.", "info");
+      emit(OPEN_LOGIN);
+      return;
+    }
+    setFormOpen(true);
+  };
 
   const boards = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -104,7 +117,7 @@ export default function LeaderboardSection({ prs: initial }: Props) {
         <button
           type="button"
           class="btn green"
-          onClick={() => setFormOpen(true)}
+          onClick={() => requestForm()}
         >
           + Registrar PR
         </button>
@@ -146,7 +159,7 @@ export default function LeaderboardSection({ prs: initial }: Props) {
           <button
             type="button"
             class="btn green"
-            onClick={() => setFormOpen(true)}
+            onClick={() => requestForm()}
           >
             Registrar el primero
           </button>
@@ -201,8 +214,9 @@ export default function LeaderboardSection({ prs: initial }: Props) {
         })}
       </div>
 
-      {formOpen && (
+      {formOpen && member && (
         <PRFormModal
+          member={member}
           onClose={() => setFormOpen(false)}
           onSubmitted={() => setFormOpen(false)}
         />
@@ -212,10 +226,12 @@ export default function LeaderboardSection({ prs: initial }: Props) {
 }
 
 function PRFormModal(
-  { onClose, onSubmitted }: { onClose: () => void; onSubmitted: () => void },
+  { member, onClose, onSubmitted }: {
+    member: SessionMember;
+    onClose: () => void;
+    onSubmitted: () => void;
+  },
 ) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [movement, setMovement] = useState(MOVEMENTS[0].name);
   const [value, setValue] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -225,8 +241,8 @@ function PRFormModal(
 
   const submit = async (e: Event) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !date) {
-      toast("Rellena nombre, email y fecha.", "error");
+    if (!date) {
+      toast("Indica la fecha del PR.", "error");
       return;
     }
 
@@ -248,14 +264,8 @@ function PRFormModal(
       const res = await fetch("/api/prs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          memberName: name.trim(),
-          memberEmail: email.trim(),
-          movement,
-          weight: numeric,
-          metric,
-          date,
-        }),
+        // The PR is filed under whoever the session says you are.
+        body: JSON.stringify({ movement, weight: numeric, metric, date }),
       });
       if (res.ok) {
         toast("¡PR enviado! Aparecerá en cuanto lo revise un admin.", "success");
@@ -284,28 +294,15 @@ function PRFormModal(
       onClose={onClose}
     >
       <form class="form" onSubmit={submit}>
-        <label class="field">
-          <span>Nombre</span>
-          <input
-            class="input"
-            type="text"
-            required
-            placeholder="Tu nombre y apellido"
-            value={name}
-            onInput={(e) => setName((e.target as HTMLInputElement).value)}
-          />
-        </label>
-        <label class="field">
-          <span>Email</span>
-          <input
-            class="input"
-            type="email"
-            required
-            placeholder="tu@email.com"
-            value={email}
-            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-          />
-        </label>
+        <div class="as-member">
+          <span class="authbar-avatar" aria-hidden="true">
+            {member.name.trim().charAt(0).toUpperCase()}
+          </span>
+          <div>
+            <b>{member.name}</b>
+            <small>{member.email}</small>
+          </div>
+        </div>
         <label class="field">
           <span>Movimiento</span>
           <select

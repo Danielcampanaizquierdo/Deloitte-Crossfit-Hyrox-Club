@@ -1,21 +1,15 @@
-import { FreshContext } from "$fresh/server.ts";
-import { errorMessage } from "../../../lib/errors.ts";
+import { Handlers } from "$fresh/server.ts";
 import { memberService } from "../../../services/memberService.ts";
+import { toPublicMembers } from "../../../types/Member.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/members/pending - Get pending members (admin)
-  async GET(_req: Request, _ctx: FreshContext) {
-    try {
-      const members = await memberService.getPending();
-      return new Response(JSON.stringify(members), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+export const handler: Handlers<unknown, State> = {
+  // Moderation queue. Unapproved profiles carry personal details nobody has
+  // vetted yet, so this is admin-only.
+  async GET(_req, ctx) {
+    if (!ctx.state.isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+    return Response.json(toPublicMembers(await memberService.getPending()));
   },
 };

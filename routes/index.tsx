@@ -6,6 +6,7 @@ import { Head } from "$fresh/runtime.ts";
 import Topbar from "../components/Topbar.tsx";
 import Footer from "../components/Footer.tsx";
 import Hero from "../islands/Hero.tsx";
+import MemberAuth, { type SessionMember } from "../islands/MemberAuth.tsx";
 import TabNavigation from "../islands/TabNavigation.tsx";
 import EventsSection, { type EventItem } from "../islands/EventsSection.tsx";
 import LeaderboardSection, { type PRItem } from "../islands/LeaderboardSection.tsx";
@@ -37,6 +38,8 @@ interface ResultData {
 
 interface PageData {
   isAdmin: boolean;
+  /** The logged-in member, already stripped of credentials. */
+  sessionMember: SessionMember | null;
   events: EventItem[];
   prs: PRItem[];
   wods: WodItem[];
@@ -54,15 +57,20 @@ const toStr = (d: unknown) => d instanceof Date ? d.toISOString() : String(d);
 
 export const handler: Handlers<PageData, State> = {
   async GET(_req, ctx) {
-    const [allMembers, allPRs, allEvents, allResults, board, pendingScoresRaw] =
-      await Promise.all([
-        memberService.getAll(),
-        prService.getAll(),
-        eventService.getAll(),
-        resultService.getAll(),
-        wodService.getBoard(),
-        wodService.getPendingScores(),
-      ]);
+    // Public visitors only load approved data. Besides doing less work, this
+    // keeps moderation records (including member emails) out of Fresh's
+    // serialized island props altogether.
+    const [allMembers, allPRs, allEvents, allResults, board] = await Promise.all([
+      ctx.state.isAdmin ? memberService.getAll() : memberService.getApproved(),
+      ctx.state.isAdmin ? prService.getAll() : prService.getApproved(),
+      ctx.state.isAdmin ? eventService.getAll() : eventService.getApproved(),
+      ctx.state.isAdmin ? resultService.getAll() : resultService.getApproved(),
+      wodService.getBoard(),
+    ]);
+
+    const pendingScoresRaw = ctx.state.isAdmin
+      ? await wodService.getPendingScores()
+      : [];
 
     const events: EventItem[] = allEvents
       .filter((e) => e.approved)
@@ -143,7 +151,10 @@ export const handler: Handlers<PageData, State> = {
     // Pending WOD scores carry only a wodId, so resolve each one's name and
     // render its value in that WOD's own unit for the moderation queue.
     const wodsById = new Map(
-      (await wodService.getAll()).map((w) => [w.id, w]),
+      (ctx.state.isAdmin ? await wodService.getAll() : board).map((w) => [
+        w.id,
+        w,
+      ]),
     );
     const pendingScores: PendingScore[] = pendingScoresRaw.map((s) => {
       const wod = wodsById.get(s.wodId);
@@ -161,13 +172,23 @@ export const handler: Handlers<PageData, State> = {
 
     return ctx.render({
       isAdmin: ctx.state.isAdmin,
+      // Only the three fields the UI needs; never the whole member record,
+      // which carries the password hash.
+      sessionMember: ctx.state.member
+        ? {
+          id: ctx.state.member.id,
+          name: ctx.state.member.name,
+          email: ctx.state.member.email,
+        }
+        : null,
       events,
       prs,
       wods,
       results,
       members,
       nextEvent,
-      pendingMembers: allMembers
+      pendingMembers: ctx.state.isAdmin
+        ? allMembers
         .filter((m) => !m.approved)
         .map((m) => ({
           id: m.id,
@@ -175,8 +196,10 @@ export const handler: Handlers<PageData, State> = {
           email: m.email,
           level: m.level,
           goal: m.goal,
-        })),
-      pendingPRs: allPRs
+        }))
+        : [],
+      pendingPRs: ctx.state.isAdmin
+        ? allPRs
         .filter((p) => !p.approved)
         .map((p) => ({
           id: p.id,
@@ -184,13 +207,18 @@ export const handler: Handlers<PageData, State> = {
           movement: p.movement,
           weight: p.weight,
           metric: p.metric,
-        })),
-      pendingEvents: allEvents
+        }))
+        : [],
+      pendingEvents: ctx.state.isAdmin
+        ? allEvents
         .filter((e) => !e.approved)
-        .map((e) => ({ id: e.id, title: e.title, date: toStr(e.date) })),
-      pendingResults: allResults
+        .map((e) => ({ id: e.id, title: e.title, date: toStr(e.date) }))
+        : [],
+      pendingResults: ctx.state.isAdmin
+        ? allResults
         .filter((r) => !r.approved)
-        .map((r) => ({ id: r.id, name: r.name, date: toStr(r.date) })),
+        .map((r) => ({ id: r.id, name: r.name, date: toStr(r.date) }))
+        : [],
       pendingScores,
     });
   },
@@ -199,6 +227,7 @@ export const handler: Handlers<PageData, State> = {
 export default function Home({ data }: PageProps<PageData>) {
   const {
     isAdmin,
+    sessionMember,
     events,
     prs,
     wods,
@@ -247,6 +276,7 @@ export default function Home({ data }: PageProps<PageData>) {
 
       <div class="wrap">
         <Topbar />
+        <MemberAuth member={sessionMember} />
         <Hero
           nextEvent={nextEvent}
           memberCount={members.length}
@@ -256,15 +286,19 @@ export default function Home({ data }: PageProps<PageData>) {
         <TabNavigation pendingCount={pendingCount} />
 
         <section id="events" class="content active">
-          <EventsSection events={events} isAdmin={isAdmin} />
+          <EventsSection
+            events={events}
+            isAdmin={isAdmin}
+            member={sessionMember}
+          />
         </section>
 
         <section id="wod" class="content">
-          <WodSection wods={wods} isAdmin={isAdmin} />
+          <WodSection wods={wods} isAdmin={isAdmin} member={sessionMember} />
         </section>
 
         <section id="leaderboard" class="content">
-          <LeaderboardSection prs={prs} />
+          <LeaderboardSection prs={prs} member={sessionMember} />
         </section>
 
         <section id="results" class="content">

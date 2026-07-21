@@ -7,7 +7,10 @@
 // crosses that boundary without adding a state library.
 
 export const OPEN_BOOKING = "club:open-booking";
+/** Opens the sign-up (create account) form. */
 export const OPEN_JOIN = "club:open-join";
+/** Opens the log-in form, e.g. when an action needs an account first. */
+export const OPEN_LOGIN = "club:open-login";
 /** Carries the new pending total after a moderation action, so the tab badge
  * stops counting items that have already been reviewed. */
 export const PENDING_CHANGED = "club:pending-changed";

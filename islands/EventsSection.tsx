@@ -5,7 +5,8 @@ import { useEffect, useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
 import Countdown from "../components/Countdown.tsx";
 import { toast } from "../lib/toast.ts";
-import { on, OPEN_BOOKING } from "../lib/bus.ts";
+import { emit, on, OPEN_BOOKING, OPEN_LOGIN } from "../lib/bus.ts";
+import type { SessionMember } from "./MemberAuth.tsx";
 // Shared with the server so "full" means the same thing on both sides of the
 // booking request.
 import { spotsLeft } from "../types/Event.ts";
@@ -30,6 +31,9 @@ interface Attendee {
 interface Props {
   events: EventItem[];
   isAdmin: boolean;
+  /** The logged-in member, or null. Bookings are made as this member; the
+   * server ignores any identity sent in the request body. */
+  member: SessionMember | null;
 }
 
 type View = "cards" | "calendar";
@@ -70,7 +74,9 @@ function formatDateTime(iso: string): string {
   });
 }
 
-export default function EventsSection({ events: initial, isAdmin }: Props) {
+export default function EventsSection(
+  { events: initial, isAdmin, member }: Props,
+) {
   const [events, setEvents] = useState(initial);
   const [view, setView] = useState<View>("cards");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("upcoming");
@@ -106,10 +112,26 @@ export default function EventsSection({ events: initial, isAdmin }: Props) {
     new Date(e.date).getTime() >= now
   ).length;
 
+  /** Booking needs an account. Rather than failing at submit, send anyone
+   * without a session straight to the log-in form. */
+  const requestBooking = (ev: EventItem) => {
+    if (!member) {
+      toast("Inicia sesión para reservar tu plaza.", "info");
+      emit(OPEN_LOGIN);
+      return;
+    }
+    setBooking(ev);
+  };
+
   // The hero's "Reservar plaza" button lives in another island; it asks this
   // one to open the booking form for whatever comes next.
   useEffect(() =>
     on(OPEN_BOOKING, () => {
+      if (!member) {
+        toast("Inicia sesión para reservar tu plaza.", "info");
+        emit(OPEN_LOGIN);
+        return;
+      }
       const next = events
         .filter((e) => new Date(e.date).getTime() >= Date.now())
         .filter((e) => {
@@ -122,7 +144,7 @@ export default function EventsSection({ events: initial, isAdmin }: Props) {
 
       if (next) setBooking(next);
       else toast("Ahora mismo no hay eventos con plazas libres.", "info");
-    }), [events]);
+    }), [events, member]);
 
   const applyAttendeeDelta = (id: string, delta: number) => {
     setEvents((list) =>
@@ -310,7 +332,7 @@ export default function EventsSection({ events: initial, isAdmin }: Props) {
                         type="button"
                         class="btn green"
                         disabled={full}
-                        onClick={() => setBooking(ev)}
+                        onClick={() => requestBooking(ev)}
                       >
                         {full ? "Completo" : "Apuntarme"}
                       </button>
@@ -322,13 +344,13 @@ export default function EventsSection({ events: initial, isAdmin }: Props) {
                     >
                       Quién va ({ev.attendees})
                     </button>
-                    {!past && ev.attendees > 0 && (
+                    {!past && member && (
                       <button
                         type="button"
                         class="btn ghost"
                         onClick={() => setCancelling(ev)}
                       >
-                        Cancelar reserva
+                        Cancelar mi reserva
                       </button>
                     )}
                     {isAdmin && (
@@ -475,7 +497,7 @@ export default function EventsSection({ events: initial, isAdmin }: Props) {
                       type="button"
                       class="btn green"
                       disabled={left === 0}
-                      onClick={() => setBooking(ev)}
+                      onClick={() => requestBooking(ev)}
                     >
                       {left === 0 ? "Completo" : "Apuntarme"}
                     </button>
@@ -487,9 +509,10 @@ export default function EventsSection({ events: initial, isAdmin }: Props) {
         </div>
       )}
 
-      {booking && (
+      {booking && member && (
         <BookingModal
           event={booking}
+          member={member}
           onClose={() => setBooking(null)}
           onBooked={() => {
             applyAttendeeDelta(booking.id, 1);
@@ -539,33 +562,26 @@ export default function EventsSection({ events: initial, isAdmin }: Props) {
 }
 
 function BookingModal(
-  { event, onClose, onBooked }: {
+  { event, member, onClose, onBooked }: {
     event: EventItem;
+    member: SessionMember;
     onClose: () => void;
     onBooked: () => void;
   },
 ) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [comments, setComments] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: Event) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) {
-      toast("Necesitamos tu nombre y tu email.", "error");
-      return;
-    }
     setLoading(true);
     try {
+      // Only the comment travels: the server books for whoever the session
+      // says you are.
       const res = await fetch(`/api/events/${event.id}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          memberName: name.trim(),
-          memberEmail: email.trim(),
-          comments: comments.trim() || undefined,
-        }),
+        body: JSON.stringify({ comments: comments.trim() || undefined }),
       });
       if (res.ok) {
         toast(`¡Plaza confirmada en ${event.title}!`, "success");
@@ -597,31 +613,15 @@ function BookingModal(
             {event.capacity}.
           </div>
         )}
-        <label class="field">
-          <span>Nombre</span>
-          <input
-            class="input"
-            type="text"
-            required
-            placeholder="Tu nombre y apellido"
-            value={name}
-            onInput={(e) => setName((e.target as HTMLInputElement).value)}
-          />
-        </label>
-        <label class="field">
-          <span>Email</span>
-          <input
-            class="input"
-            type="email"
-            required
-            placeholder="tu@email.com"
-            value={email}
-            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-          />
-          <small class="hint">
-            Lo usarás si más adelante quieres cancelar la reserva.
-          </small>
-        </label>
+        <div class="as-member">
+          <span class="authbar-avatar" aria-hidden="true">
+            {member.name.trim().charAt(0).toUpperCase()}
+          </span>
+          <div>
+            <b>{member.name}</b>
+            <small>{member.email}</small>
+          </div>
+        </div>
         <label class="field">
           <span>Comentarios <em>(opcional)</em></span>
           <textarea
@@ -646,21 +646,18 @@ function CancelModal(
     onCancelled: () => void;
   },
 ) {
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: Event) => {
     e.preventDefault();
-    if (!email.trim()) {
-      toast("Introduce el email con el que reservaste.", "error");
-      return;
-    }
     setLoading(true);
     try {
+      // No email in the body: the server cancels the session holder's own
+      // booking. Passing an address meant anyone could cancel another
+      // member's place.
       const res = await fetch(`/api/events/${event.id}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberEmail: email.trim() }),
       });
       if (res.ok) {
         toast("Reserva cancelada. La plaza queda libre.", "success");
@@ -685,19 +682,9 @@ function CancelModal(
     >
       <form class="form" onSubmit={submit}>
         <p class="muted">
-          Introduce el email con el que reservaste y liberaremos tu plaza.
+          Vamos a liberar tu plaza en <b>{event.title}</b>. Podrás volver a
+          apuntarte mientras queden sitios.
         </p>
-        <label class="field">
-          <span>Email</span>
-          <input
-            class="input"
-            type="email"
-            required
-            placeholder="tu@email.com"
-            value={email}
-            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-          />
-        </label>
         <button class="btn red" type="submit" disabled={loading}>
           {loading ? "Cancelando…" : "Cancelar mi reserva"}
         </button>

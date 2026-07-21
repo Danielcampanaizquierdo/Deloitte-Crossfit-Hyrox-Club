@@ -1,75 +1,63 @@
-import { FreshContext } from "$fresh/server.ts";
-import { errorMessage } from "../../../lib/errors.ts";
+import { Handlers } from "$fresh/server.ts";
 import { memberService } from "../../../services/memberService.ts";
+import { toPublicMember } from "../../../types/Member.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/members/[id] - Get member by ID
-  async GET(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const member = await memberService.getById(id);
-      if (!member) {
-        return new Response(JSON.stringify({ error: "Member not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify(member), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+export const handler: Handlers<unknown, State> = {
+  async GET(_req, ctx) {
+    const member = await memberService.getById(ctx.params.id);
+    // Unapproved profiles are only visible to an admin; to everyone else they
+    // do not exist yet.
+    if (!member || (!member.approved && !ctx.state.isAdmin)) {
+      return Response.json({ error: "Member not found" }, { status: 404 });
     }
+    return Response.json(toPublicMember(member));
   },
 
-  // PUT /api/members/[id] - Update member
-  async PUT(req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const data = await req.json();
-      const member = await memberService.update(id, data);
-      if (!member) {
-        return new Response(JSON.stringify({ error: "Member not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify(member), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+  // A member may edit their own profile; an admin may edit anyone's. This
+  // used to be open to anyone, which allowed self-approval and overwriting
+  // another member's stored credentials.
+  async PUT(req, ctx) {
+    const isSelf = ctx.state.member?.id === ctx.params.id;
+    if (!ctx.state.isAdmin && !isSelf) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ error: "JSON inválido" }, { status: 400 });
+    }
+
+    // Only these fields are accepted from a request. Spreading the body
+    // straight into the update let a caller set approved, or replace
+    // passwordHash/passwordSalt.
+    const allowed: Record<string, unknown> = {};
+    for (const field of ["name", "level", "goal", "location", "bio"]) {
+      if (body[field] !== undefined) allowed[field] = body[field];
+    }
+    // Approval is a moderation decision, so only an admin may change it.
+    if (ctx.state.isAdmin && typeof body.approved === "boolean") {
+      allowed.approved = body.approved;
+    }
+
+    const member = await memberService.update(ctx.params.id, allowed);
+    if (!member) {
+      return Response.json({ error: "Member not found" }, { status: 404 });
+    }
+    return Response.json(toPublicMember(member));
   },
 
-  // DELETE /api/members/[id] - Delete member
-  async DELETE(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const success = await memberService.delete(id);
-      if (!success) {
-        return new Response(JSON.stringify({ error: "Member not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ message: "Member deleted" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+  async DELETE(_req, ctx) {
+    const isSelf = ctx.state.member?.id === ctx.params.id;
+    if (!ctx.state.isAdmin && !isSelf) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+    const success = await memberService.delete(ctx.params.id);
+    if (!success) {
+      return Response.json({ error: "Member not found" }, { status: 404 });
+    }
+    return Response.json({ message: "Member deleted" });
   },
 };

@@ -111,6 +111,8 @@ export function createMemberRepository(kv: Deno.Kv): MemberRepository {
       location: data.location,
       bio: data.bio,
       approved: false,
+      passwordHash: data.passwordHash,
+      passwordSalt: data.passwordSalt,
       joinedAt: now,
       createdAt: now,
       updatedAt: now,

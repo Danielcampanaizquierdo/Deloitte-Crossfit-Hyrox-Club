@@ -1,10 +1,9 @@
 /** @jsx h */
 /** @jsxFrag Fragment */
 import { Fragment, h } from "preact";
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
-import { toast } from "../lib/toast.ts";
-import { on, OPEN_JOIN } from "../lib/bus.ts";
+import { emit, OPEN_JOIN } from "../lib/bus.ts";
 import {
   formatCalendarDate,
   formatPRValue,
@@ -64,11 +63,6 @@ export default function MembersSection(
   const [level, setLevel] = useState("all");
   const [goal, setGoal] = useState("all");
   const [detail, setDetail] = useState<MemberItem | null>(null);
-  const [joinOpen, setJoinOpen] = useState(false);
-
-  // Opened from the hero's "Crear perfil" button, which lives in its own
-  // island and cannot reach this state directly.
-  useEffect(() => on(OPEN_JOIN, () => setJoinOpen(true)), []);
 
   const prsByAthlete = useMemo(() => {
     const map = new Map<string, MemberPR[]>();
@@ -115,8 +109,8 @@ export default function MembersSection(
             club
           </p>
         </div>
-        <button type="button" class="btn green" onClick={() => setJoinOpen(true)}>
-          + Crear perfil
+        <button type="button" class="btn green" onClick={() => emit(OPEN_JOIN)}>
+          + Crear cuenta
         </button>
       </div>
 
@@ -271,134 +265,6 @@ export default function MembersSection(
         </Modal>
       )}
 
-      {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
     </Fragment>
-  );
-}
-
-function JoinModal({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [level, setLevel] = useState("beginner");
-  const [goal, setGoal] = useState("crossfit");
-  const [location, setLocation] = useState("Madrid");
-  const [bio, setBio] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e: Event) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim() || !location.trim()) {
-      toast("Rellena nombre, email y ciudad.", "error");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          level,
-          goal,
-          location: location.trim(),
-          bio: bio.trim() || undefined,
-        }),
-      });
-      if (res.ok) {
-        toast("¡Perfil enviado! Un admin lo aprobará en breve.", "success");
-        onClose();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast(data.error ?? "No se pudo crear el perfil.", "error");
-      }
-    } catch {
-      toast("Error de conexión. Inténtalo de nuevo.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal
-      open
-      title="Crear perfil"
-      subtitle="Un admin lo revisará antes de publicarlo"
-      onClose={onClose}
-    >
-      <form class="form" onSubmit={submit}>
-        <label class="field">
-          <span>Nombre</span>
-          <input
-            class="input"
-            type="text"
-            required
-            placeholder="Tu nombre y apellido"
-            value={name}
-            onInput={(e) => setName((e.target as HTMLInputElement).value)}
-          />
-        </label>
-        <label class="field">
-          <span>Email</span>
-          <input
-            class="input"
-            type="email"
-            required
-            placeholder="tu@email.com"
-            value={email}
-            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-          />
-        </label>
-        <div class="field-row">
-          <label class="field">
-            <span>Nivel</span>
-            <select
-              class="input"
-              value={level}
-              onChange={(e) => setLevel((e.target as HTMLSelectElement).value)}
-            >
-              <option value="beginner">Principiante</option>
-              <option value="intermediate">Intermedio</option>
-              <option value="advanced">Avanzado</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Objetivo</span>
-            <select
-              class="input"
-              value={goal}
-              onChange={(e) => setGoal((e.target as HTMLSelectElement).value)}
-            >
-              <option value="crossfit">CrossFit</option>
-              <option value="hyrox">HYROX</option>
-              <option value="general">Fitness general</option>
-            </select>
-          </label>
-        </div>
-        <label class="field">
-          <span>Ciudad</span>
-          <input
-            class="input"
-            type="text"
-            required
-            placeholder="Madrid"
-            value={location}
-            onInput={(e) => setLocation((e.target as HTMLInputElement).value)}
-          />
-        </label>
-        <label class="field">
-          <span>Sobre ti <em>(opcional)</em></span>
-          <textarea
-            class="input"
-            placeholder="Desde cuándo entrenas, objetivos, competiciones…"
-            value={bio}
-            onInput={(e) => setBio((e.target as HTMLTextAreaElement).value)}
-          />
-        </label>
-        <button class="btn green" type="submit" disabled={loading}>
-          {loading ? "Enviando…" : "Crear mi perfil"}
-        </button>
-      </form>
-    </Modal>
   );
 }

@@ -4,6 +4,8 @@ import { Fragment, h } from "preact";
 import { useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
 import { toast } from "../lib/toast.ts";
+import { emit, OPEN_LOGIN } from "../lib/bus.ts";
+import type { SessionMember } from "./MemberAuth.tsx";
 import {
   formatCalendarDate,
   formatSeconds,
@@ -38,6 +40,7 @@ export interface WodItem {
 interface Props {
   wods: WodItem[];
   isAdmin: boolean;
+  member: SessionMember | null;
 }
 
 const FORMAT_CLASS: Record<WodFormat, string> = {
@@ -57,10 +60,20 @@ function formatScore(value: number, scoreType: WodScoreType): string {
   return `${value} reps`;
 }
 
-export default function WodSection({ wods: initial, isAdmin }: Props) {
+export default function WodSection({ wods: initial, isAdmin, member }: Props) {
   const [wods, setWods] = useState(initial);
   const [scoring, setScoring] = useState<WodItem | null>(null);
   const [creating, setCreating] = useState(false);
+
+  /** A score is attributed from the session, so an account is required. */
+  const requestScore = (wod: WodItem) => {
+    if (!member) {
+      toast("Inicia sesión para registrar tu score.", "info");
+      emit(OPEN_LOGIN);
+      return;
+    }
+    setScoring(wod);
+  };
 
   const deleteWod = async (wod: WodItem) => {
     const res = await fetch(`/api/wods/${wod.id}/delete`, { method: "DELETE" });
@@ -157,7 +170,7 @@ export default function WodSection({ wods: initial, isAdmin }: Props) {
                 <button
                   type="button"
                   class="btn green"
-                  onClick={() => setScoring(wod)}
+                  onClick={() => requestScore(wod)}
                 >
                   Registrar mi score
                 </button>
@@ -176,17 +189,25 @@ export default function WodSection({ wods: initial, isAdmin }: Props) {
         ))}
       </div>
 
-      {scoring && (
-        <ScoreModal wod={scoring} onClose={() => setScoring(null)} />
+      {scoring && member && (
+        <ScoreModal
+          wod={scoring}
+          member={member}
+          onClose={() => setScoring(null)}
+        />
       )}
       {creating && <WodFormModal onClose={() => setCreating(false)} />}
     </Fragment>
   );
 }
 
-function ScoreModal({ wod, onClose }: { wod: WodItem; onClose: () => void }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+function ScoreModal(
+  { wod, member, onClose }: {
+    wod: WodItem;
+    member: SessionMember;
+    onClose: () => void;
+  },
+) {
   const [value, setValue] = useState("");
   const [scaled, setScaled] = useState(false);
   const [notes, setNotes] = useState("");
@@ -196,10 +217,6 @@ function ScoreModal({ wod, onClose }: { wod: WodItem; onClose: () => void }) {
 
   const submit = async (e: Event) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) {
-      toast("Necesitamos tu nombre y tu email.", "error");
-      return;
-    }
 
     const numeric = isTime ? parseTimeToSeconds(value) : Number(value);
     if (numeric === null || !Number.isFinite(numeric) || numeric <= 0) {
@@ -217,11 +234,10 @@ function ScoreModal({ wod, onClose }: { wod: WodItem; onClose: () => void }) {
       const res = await fetch(`/api/wods/${wod.id}/scores`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Attribution comes from the session; times go over the wire as mm:ss
+        // and are parsed server-side too, so the API stays usable without the
+        // form.
         body: JSON.stringify({
-          memberName: name.trim(),
-          memberEmail: email.trim(),
-          // Times go over the wire as mm:ss and are parsed server-side too,
-          // so the API stays usable without the form.
           value: isTime ? value.trim() : numeric,
           scaled,
           notes: notes.trim() || undefined,
@@ -249,28 +265,15 @@ function ScoreModal({ wod, onClose }: { wod: WodItem; onClose: () => void }) {
       onClose={onClose}
     >
       <form class="form" onSubmit={submit}>
-        <label class="field">
-          <span>Nombre</span>
-          <input
-            class="input"
-            type="text"
-            required
-            placeholder="Tu nombre y apellido"
-            value={name}
-            onInput={(e) => setName((e.target as HTMLInputElement).value)}
-          />
-        </label>
-        <label class="field">
-          <span>Email</span>
-          <input
-            class="input"
-            type="email"
-            required
-            placeholder="tu@email.com"
-            value={email}
-            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-          />
-        </label>
+        <div class="as-member">
+          <span class="authbar-avatar" aria-hidden="true">
+            {member.name.trim().charAt(0).toUpperCase()}
+          </span>
+          <div>
+            <b>{member.name}</b>
+            <small>{member.email}</small>
+          </div>
+        </div>
         <label class="field">
           <span>
             Resultado <em>({isTime ? "mm:ss" : WOD_SCORE_LABELS[wod.scoreType]})</em>

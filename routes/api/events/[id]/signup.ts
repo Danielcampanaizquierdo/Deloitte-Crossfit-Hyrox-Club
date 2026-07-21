@@ -5,16 +5,23 @@ import { State } from "../../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
   async POST(req, ctx) {
-    let body: Record<string, string>;
-    try {
-      body = await req.json();
-    } catch {
-      return Response.json({ error: "JSON inválido" }, { status: 400 });
+    const member = ctx.state.member;
+    if (!member) {
+      return Response.json(
+        { error: "Inicia sesión para reservar plaza" },
+        { status: 401 },
+      );
     }
 
-    const { memberName, memberEmail, comments } = body;
-    if (!memberName || !memberEmail) {
-      return Response.json({ error: "Nombre y email requeridos" }, { status: 400 });
+    // Comments are the only thing the client gets to supply. Name and email
+    // come from the session, so a booking can only ever be made for the
+    // logged-in member.
+    let comments: string | undefined;
+    try {
+      const body = await req.json();
+      comments = typeof body?.comments === "string" ? body.comments : undefined;
+    } catch {
+      comments = undefined;
     }
 
     const event = await eventService.getById(ctx.params.id);
@@ -25,8 +32,9 @@ export const handler: Handlers<unknown, State> = {
     try {
       const signup = await signupService.create({
         eventId: ctx.params.id,
-        memberName,
-        memberEmail,
+        memberId: member.id,
+        memberName: member.name,
+        memberEmail: member.email,
         comments,
       });
       return Response.json(signup, { status: 201 });

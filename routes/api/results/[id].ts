@@ -1,51 +1,26 @@
-import { FreshContext } from "$fresh/server.ts";
-import { errorMessage } from "../../../lib/errors.ts";
+import { Handlers } from "$fresh/server.ts";
 import { resultService } from "../../../services/resultService.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/results/[id] - Get result by ID
-  async GET(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const result = await resultService.getById(id);
-      if (!result) {
-        return new Response(JSON.stringify({ error: "Result not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+export const handler: Handlers<unknown, State> = {
+  async GET(_req, ctx) {
+    const result = await resultService.getById(ctx.params.id);
+    // An unapproved result is not published yet.
+    if (!result || (!result.approved && !ctx.state.isAdmin)) {
+      return Response.json({ error: "Result not found" }, { status: 404 });
     }
+    return Response.json(result);
   },
 
-  // DELETE /api/results/[id] - Delete result
-  async DELETE(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const success = await resultService.delete(id);
-      if (!success) {
-        return new Response(JSON.stringify({ error: "Result not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ message: "Result deleted" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+  // Competition write-ups are club records, so only an admin may remove one.
+  async DELETE(_req, ctx) {
+    if (!ctx.state.isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+    const success = await resultService.delete(ctx.params.id);
+    if (!success) {
+      return Response.json({ error: "Result not found" }, { status: 404 });
+    }
+    return Response.json({ message: "Result deleted" });
   },
 };

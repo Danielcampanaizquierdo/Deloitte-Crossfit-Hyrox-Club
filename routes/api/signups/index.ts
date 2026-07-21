@@ -1,66 +1,30 @@
-import { FreshContext } from "$fresh/server.ts";
+import { Handlers } from "$fresh/server.ts";
 import { signupService } from "../../../services/signupService.ts";
+import { State } from "../../../types/State.ts";
 
-export const handler = {
-  // GET /api/signups - Get all signups
-  async GET(_req: Request, _ctx: FreshContext) {
-    try {
-      const url = new URL(_req.url);
-      const eventId = url.searchParams.get("eventId");
-
-      if (eventId) {
-        const signups = await signupService.getByEventId(eventId);
-        return new Response(JSON.stringify(signups), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-
-      const signups = await signupService.getAll();
-      return new Response(JSON.stringify(signups), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(
-        JSON.stringify({
-          error: error instanceof Error ? error.message : "Unknown error",
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+export const handler: Handlers<unknown, State> = {
+  // Signups carry the booker's email and free-text comments, so the full list
+  // is admin-only. The public roster lives at
+  // /api/events/[id]/attendees, which returns names alone.
+  async GET(req, ctx) {
+    if (!ctx.state.isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+    const eventId = new URL(req.url).searchParams.get("eventId");
+    return Response.json(
+      eventId
+        ? await signupService.getByEventId(eventId)
+        : await signupService.getAll(),
+    );
   },
 
-  // POST /api/signups - Create signup
-  async POST(req: Request, _ctx: FreshContext) {
-    try {
-      const data = await req.json();
-      const signup = await signupService.create(data);
-
-      if (!signup) {
-        return new Response(JSON.stringify({ error: "Event not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify(signup), {
-        status: 201,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(
-        JSON.stringify({
-          error: error instanceof Error ? error.message : "Unknown error",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
+  // Booking goes through POST /api/events/[id]/signup, which takes the
+  // member's identity from their session. This accepted an arbitrary name and
+  // email, so it could be used to book on somebody else's behalf.
+  POST(_req, _ctx) {
+    return Response.json(
+      { error: "Usa POST /api/events/{id}/signup para reservar plaza" },
+      { status: 410 },
+    );
   },
 };

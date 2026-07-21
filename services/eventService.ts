@@ -13,6 +13,10 @@ export function createEventService(repo: EventRepository) {
       return repo.list();
     },
 
+    async getApproved(): Promise<Event[]> {
+      return repo.listApproved();
+    },
+
     async getById(id: string): Promise<Event | null> {
       return repo.get(id);
     },

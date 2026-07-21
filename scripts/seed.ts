@@ -9,6 +9,10 @@
 const baseUrl = Deno.args[0] ?? "http://localhost:8000";
 const passcode = Deno.env.get("ADMIN_PASSCODE") ?? "ClubAdmin2026";
 
+// Every seeded athlete gets the same password so the demo data is actually
+// usable: you can log in as any of them and see the member view.
+const DEMO_PASSWORD = Deno.env.get("SEED_PASSWORD") ?? "ClubDemo2026";
+
 const host = new URL(baseUrl).hostname;
 if (
   !["localhost", "127.0.0.1", "[::1]"].includes(host) &&
@@ -26,12 +30,14 @@ async function api(
   path: string,
   body?: unknown,
   method = "POST",
+  asCookie?: string,
 ): Promise<Response> {
+  const auth = asCookie ?? cookie;
   const res = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
       "Content-Type": "application/json",
-      ...(cookie ? { cookie } : {}),
+      ...(auth ? { cookie: auth } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -39,6 +45,23 @@ async function api(
     console.warn(`  ! ${method} ${path} -> ${res.status}`);
   }
   return res;
+}
+
+/** Logs in as a seeded athlete and returns their session cookie, so their
+ * bookings, PRs and WOD scores are made under their own identity — the same
+ * path a real member takes. */
+async function loginAs(email: string): Promise<string | null> {
+  const res = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: DEMO_PASSWORD }),
+  });
+  if (!res.ok) {
+    console.warn(`  ! login ${email} -> ${res.status}`);
+    return null;
+  }
+  await res.body?.cancel();
+  return res.headers.get("set-cookie")?.split(";")[0] ?? null;
 }
 
 function daysFromNow(days: number, hour = 10, minute = 0): string {
@@ -132,17 +155,38 @@ const members = [
 ];
 
 const memberIds: string[] = [];
+const memberEmails: string[] = [];
 for (const [name, email, level, goal, location, bio] of members) {
-  const res = await api("/api/members", {
-    name, email, level, goal, location, bio: bio || undefined,
+  const res = await api("/api/auth/register", {
+    name,
+    email,
+    password: DEMO_PASSWORD,
+    level,
+    goal,
+    location,
+    bio: bio || undefined,
   });
-  if (res.ok) memberIds.push((await res.json()).id);
+  if (res.ok) {
+    memberIds.push((await res.json()).member.id);
+    memberEmails.push(email);
+  }
 }
-// Approve all but the last two, so the moderation queue is not empty.
-for (const id of memberIds.slice(0, -2)) {
+// Approve all but the last two, so the moderation queue is not empty. Only
+// approved accounts can log in.
+const approvedEmails: string[] = [];
+for (const [i, id] of memberIds.slice(0, -2).entries()) {
   await api(`/api/members/${id}/approve`);
+  approvedEmails.push(memberEmails[i]);
 }
-console.log(`✓ ${memberIds.length} members (${memberIds.length - 2} approved)`);
+console.log(`✓ ${memberIds.length} members (${approvedEmails.length} approved)`);
+
+// One session per approved athlete: everything below is created as them.
+const sessions = new Map<string, string>();
+for (const email of approvedEmails) {
+  const session = await loginAs(email);
+  if (session) sessions.set(email, session);
+}
+console.log(`✓ ${sessions.size} member sessions`);
 
 // ── PRs ─────────────────────────────────────────────────────────────────
 const prs: [string, string, string, number][] = [
@@ -178,14 +222,16 @@ const prs: [string, string, string, number][] = [
 ];
 
 const prIds: string[] = [];
-for (const [memberName, memberEmail, movement, weight] of prs) {
+for (const [, memberEmail, movement, weight] of prs) {
+  // Attribution now comes from the session, so the PR is filed as whoever is
+  // logged in rather than whatever name the request claims.
+  const session = sessions.get(memberEmail);
+  if (!session) continue;
   const res = await api("/api/prs", {
-    memberName,
-    memberEmail,
     movement,
     weight,
     date: daysFromNow(-Math.floor(Math.random() * 120) - 1).slice(0, 10),
-  });
+  }, "POST", session);
   if (res.ok) prIds.push((await res.json()).id);
 }
 // Leave the last three pending so the admin queue has something in it.
@@ -245,10 +291,13 @@ for (const { scores, ...wod } of wods) {
   const res = await api("/api/wods", wod);
   if (!res.ok) continue;
   const created = await res.json();
-  for (const [memberName, memberEmail, value, scaled] of scores) {
+  for (const [, memberEmail, value, scaled] of scores) {
+    const session = sessions.get(memberEmail as string);
+    if (!session) continue;
     const scoreRes = await api(`/api/wods/${created.id}/scores`, {
-      memberName, memberEmail, value, scaled,
-    });
+      value,
+      scaled,
+    }, "POST", session);
     if (scoreRes.ok) {
       const score = await scoreRes.json();
       // Leave one score pending per WOD for the moderation queue.
@@ -301,13 +350,15 @@ const bookings: [number, string, string][] = [
   [3, "Carlos Ibáñez", "carlos@example.com"],
 ];
 let bookingCount = 0;
-for (const [index, memberName, memberEmail] of bookings) {
+for (const [index, , memberEmail] of bookings) {
   const id = eventIds[index];
-  if (!id) continue;
-  if ((await api(`/api/events/${id}/signup`, { memberName, memberEmail })).ok) {
+  const session = sessions.get(memberEmail);
+  if (!id || !session) continue;
+  if ((await api(`/api/events/${id}/signup`, {}, "POST", session)).ok) {
     bookingCount++;
   }
 }
 console.log(`✓ ${bookingCount} bookings`);
 
 console.log(`\nSeeded ${baseUrl}`);
+console.log(`Demo athletes log in with the password: ${DEMO_PASSWORD}`);

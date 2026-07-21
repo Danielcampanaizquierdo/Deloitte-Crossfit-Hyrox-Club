@@ -1,51 +1,33 @@
-import { FreshContext } from "$fresh/server.ts";
-import { errorMessage } from "../../../lib/errors.ts";
+import { Handlers } from "$fresh/server.ts";
 import { prService } from "../../../services/prService.ts";
+import { State } from "../../../types/State.ts";
+import { toPublicPR } from "../../../types/PR.ts";
 
-export const handler = {
-  // GET /api/prs/[id] - Get PR by ID
-  async GET(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const pr = await prService.getById(id);
-      if (!pr) {
-        return new Response(JSON.stringify({ error: "PR not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify(pr), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+export const handler: Handlers<unknown, State> = {
+  async GET(_req, ctx) {
+    const pr = await prService.getById(ctx.params.id);
+    // A PR awaiting moderation is not public yet.
+    if (!pr || (!pr.approved && !ctx.state.isAdmin)) {
+      return Response.json({ error: "PR not found" }, { status: 404 });
     }
+    return Response.json(toPublicPR(pr));
   },
 
-  // DELETE /api/prs/[id] - Delete PR
-  async DELETE(_req: Request, ctx: FreshContext) {
-    try {
-      const { id } = ctx.params;
-      const success = await prService.delete(id);
-      if (!success) {
-        return new Response(JSON.stringify({ error: "PR not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ message: "PR deleted" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: errorMessage(error) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+  // An athlete may retract their own record; an admin may remove any. This was
+  // open to anyone holding the id.
+  async DELETE(_req, ctx) {
+    const pr = await prService.getById(ctx.params.id);
+    if (!pr) {
+      return Response.json({ error: "PR not found" }, { status: 404 });
     }
+
+    const isOwner = ctx.state.member?.email.toLowerCase() ===
+      pr.memberEmail.toLowerCase();
+    if (!ctx.state.isAdmin && !isOwner) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await prService.delete(ctx.params.id);
+    return Response.json({ message: "PR deleted" });
   },
 };
