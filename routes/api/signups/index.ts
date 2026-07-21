@@ -1,6 +1,5 @@
 import { FreshContext } from "$fresh/server.ts";
 import { signupService } from "../../../services/signupService.ts";
-import { eventService } from "../../../services/eventService.ts";
 
 export const handler = {
   // GET /api/signups - Get all signups
@@ -23,10 +22,15 @@ export const handler = {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
   },
 
@@ -48,10 +52,15 @@ export const handler = {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
   },
 };
