@@ -57,9 +57,8 @@ function initials(name: string): string {
 }
 
 export default function MembersSection(
-  { members: initial, prs, pendingCount }: Props,
+  { members, prs, pendingCount }: Props,
 ) {
-  const [members] = useState(initial);
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState("all");
   const [goal, setGoal] = useState("all");

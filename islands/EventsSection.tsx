@@ -6,6 +6,9 @@ import Modal from "../components/Modal.tsx";
 import Countdown from "../components/Countdown.tsx";
 import { toast } from "../lib/toast.ts";
 import { on, OPEN_BOOKING } from "../lib/bus.ts";
+// Shared with the server so "full" means the same thing on both sides of the
+// booking request.
+import { spotsLeft } from "../types/Event.ts";
 
 export interface EventItem {
   id: string;
@@ -46,11 +49,6 @@ const MONTHS = [
 ];
 
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
-
-function spotsLeft(ev: EventItem): number | null {
-  if (!ev.capacity || ev.capacity <= 0) return null;
-  return Math.max(0, ev.capacity - ev.attendees);
-}
 
 /** Local-time day key, so an event groups under the day the athlete sees it
  * on rather than its UTC date. */
