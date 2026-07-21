@@ -7,7 +7,7 @@ export default function Topbar() {
         </div>
         <div>
           <div class="eyebrow">Madrid</div>
-          <div class="brandtitle">Club Hub</div>
+          <div class="brandtitle">The unique Club Hub</div>
         </div>
       </div>
       <div class="status">
