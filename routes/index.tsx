@@ -212,7 +212,7 @@ export default function Home({ data }: PageProps<PageData>) {
       <Head>
         <link
           rel="preload"
-          href="/fonts/Anton-Regular.woff2"
+          href="/fonts/SairaCondensed-ExtraBold.woff2"
           as="font"
           type="font/woff2"
           crossorigin
