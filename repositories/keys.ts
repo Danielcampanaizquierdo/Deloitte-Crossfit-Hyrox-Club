@@ -8,6 +8,16 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+// Admins: ["admins", id]
+export function adminKey(id: string): Deno.KvKey {
+  return ["admins", id];
+}
+
+// Admins index: ["admins_by_email", normalizedEmail]
+export function adminEmailKey(email: string): Deno.KvKey {
+  return ["admins_by_email", normalizeEmail(email)];
+}
+
 // Events: ["events", id]
 export function eventKey(id: string): Deno.KvKey {
   return ["events", id];
