@@ -4,70 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Deloitte CrossFit HYROX Club Hub - HTML Preview</title>
-  <style>
-    :root{
-      --green:#86BC25;
-      --green2:#a7f23a;
-      --black:#050505;
-      --panel:rgba(255,255,255,.035);
-      --line:rgba(255,255,255,.11);
-      --muted:#a3a3a3;
-      --danger:#ff6b6b;
-      --radius:26px;
-      --font-display: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-      --font-body: Arial, Helvetica, sans-serif;
-      --font-mono: 'Courier New', monospace;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      color:#fff;
-      background:
-        radial-gradient(circle at 18% 5%, rgba(134,188,37,.20), transparent 28%),
-        radial-gradient(circle at 85% 0%, rgba(255,255,255,.08), transparent 24%),
-        linear-gradient(180deg,#050505 0%,#0b0b0b 55%,#000 100%);
-      font-family:var(--font-body);
-      min-height:100vh;
-    }
-    button,input,textarea,select{font-family:inherit}
-    .wrap{max-width:1180px;margin:0 auto;padding:24px 18px 54px}
-    .topbar{
-      display:flex;align-items:center;justify-content:space-between;gap:18px;
-      border:1px solid var(--line);background:rgba(255,255,255,.035);backdrop-filter:blur(10px);
-      border-radius:var(--radius);padding:12px 16px;margin-bottom:32px;
-    }
-    .brand{display:flex;align-items:center;gap:14px}
-    .crest{
-      width:68px;height:68px;border-radius:22px;border:2px solid rgba(134,188,37,.55);
-      display:grid;place-items:center;background:#000;box-shadow:0 0 35px rgba(134,188,37,.2);position:relative;overflow:hidden;
-    }
-    .crest:before{content:"";position:absolute;inset:7px;border:2px solid var(--green);border-radius:18px;clip-path:polygon(50% 0,100% 18%,88% 88%,50% 100%,12% 88%,0 18%)}
-    .crest span{font-family:var(--font-display);font-size:15px;line-height:.95;text-align:center;color:#fff;z-index:1;letter-spacing:1px}.crest b{color:var(--green);display:block;font-size:22px}
-    .eyebrow{font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.33em;font-weight:800}
-    .brandtitle{font-family:var(--font-display);font-size:24px;text-transform:uppercase;letter-spacing:.08em}
-    .status{display:none;align-items:center;gap:8px;border:1px solid rgba(134,188,37,.32);border-radius:999px;padding:10px 15px;color:#d9ffad;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.dot{width:8px;height:8px;border-radius:99px;background:var(--green)}
-    @media(min-width:700px){.status{display:flex}}
-    .hero{display:grid;gap:26px;align-items:center;margin-bottom:30px}.hero h1{font-family:var(--font-display);font-size:clamp(52px,9vw,102px);line-height:.88;margin:0;text-transform:uppercase;letter-spacing:.02em}.hero h1 span{color:var(--green)}
-    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(0,0,0,.6);border-radius:999px;padding:10px 14px;font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:800;color:#d4d4d4;margin-bottom:18px}.pill strong{color:var(--green)}
-    .hero p{color:#d4d4d4;line-height:1.7;max-width:650px;font-size:17px}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}.btn{border:0;border-radius:14px;padding:13px 18px;font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;cursor:pointer}.btn.green{background:var(--green);color:#000}.btn.dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.16)}.btn.red{background:transparent;color:#ffb3b3;border:1px solid rgba(255,107,107,.35)}.btn:hover{filter:brightness(1.12)}
-    .hero-card{border:1px solid rgba(134,188,37,.28);background:rgba(0,0,0,.72);border-radius:32px;padding:18px;box-shadow:0 0 70px rgba(134,188,37,.14)}
-    @media(min-width:900px){.hero{grid-template-columns:1.08fr .92fr}}
-    .wordmark{height:230px;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:#000;display:grid;place-items:center;margin-bottom:18px;position:relative;overflow:hidden}.wordmark:after{content:"";position:absolute;left:10%;right:10%;top:42%;height:2px;background:var(--green);box-shadow:0 72px 0 var(--green)}.wordmark .d{font-family:Arial Black,Arial,sans-serif;font-size:54px;font-weight:900;z-index:1}.wordmark .d span{color:var(--green)}.wordmark .h{font-family:var(--font-display);font-size:66px;color:var(--green);z-index:1;letter-spacing:.08em}.wordmark .c{font-family:var(--font-display);font-size:25px;z-index:1;letter-spacing:.28em;color:#eee}
-    .countdown{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.timebox{border:1px solid rgba(255,255,255,.11);border-radius:15px;background:rgba(0,0,0,.62);text-align:center;padding:12px 8px}.timebox b{font-family:var(--font-mono);font-size:28px}.timebox small{display:block;color:var(--green);font-size:10px;letter-spacing:.18em;font-weight:900;margin-top:4px}
-    .nav{position:sticky;top:10px;z-index:20;display:grid;grid-template-columns:repeat(2,1fr);overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.88);backdrop-filter:blur(10px);border-radius:20px;margin:26px 0}.tab{padding:16px 8px;background:transparent;color:#a3a3a3;border:0;border-right:1px solid rgba(255,255,255,.06);font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;font-size:13px;cursor:pointer}.tab.active{background:var(--green);color:#000}.tab:hover:not(.active){color:#fff}@media(min-width:800px){.nav{grid-template-columns:repeat(5,1fr)}}
-    .section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}.section-head h2{font-family:var(--font-display);font-size:34px;text-transform:uppercase;letter-spacing:.1em;margin:0}.tools{display:flex;flex-wrap:wrap;gap:8px}.content{display:none}.content.active{display:block}.grid{display:grid;gap:16px}.cards2{grid-template-columns:1fr}@media(min-width:780px){.cards2{grid-template-columns:repeat(2,1fr)}}@media(min-width:960px){.cards3{grid-template-columns:repeat(3,1fr)}}
-    .card{border:1px solid var(--line);background:var(--panel);border-radius:28px;overflow:hidden}.card-body{padding:22px}.card h3{font-family:var(--font-display);font-size:25px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px}.meta{color:#d4d4d4;font-size:14px;line-height:1.8}.muted{color:var(--muted)}.imgph{height:170px;background:linear-gradient(135deg,rgba(134,188,37,.24),rgba(0,0,0,.8)),repeating-linear-gradient(45deg,rgba(255,255,255,.07),rgba(255,255,255,.07) 8px,transparent 8px,transparent 18px);display:grid;place-items:center;color:#cfff9a;text-transform:uppercase;letter-spacing:.18em;font-weight:900;font-size:12px}.badge{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(134,188,37,.34);background:rgba(134,188,37,.1);color:#d9ffad;border-radius:999px;padding:6px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:900}.mini-count{margin-top:14px}.mini-count .timebox{padding:8px 3px}.mini-count .timebox b{font-size:14px}.mini-count .timebox small{font-size:9px}
-    .calendar{border:1px solid var(--line);background:var(--panel);border-radius:28px;padding:18px}.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.cal-head h3{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;font-size:25px;margin:0}.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.cal-label{text-align:center;font-size:10px;color:#777;font-weight:900;letter-spacing:.18em}.cal-cell{min-height:90px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:rgba(0,0,0,.38);padding:8px}.cal-cell.empty{opacity:.3}.day{font-family:var(--font-mono);font-size:12px;color:#ddd;margin-bottom:6px}.event-chip{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(134,188,37,.14);color:#d7ffac;border:0;border-radius:8px;text-align:left;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;padding:5px;margin-top:4px;cursor:pointer}
-    .leader-card{padding:22px}.row{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;margin:14px 0}.rank{font-family:var(--font-mono);font-weight:900;color:var(--green)}.bar{height:30px;border:1px solid rgba(255,255,255,.1);border-radius:99px;background:#050505;overflow:hidden;position:relative}.fill{height:100%;background:repeating-linear-gradient(90deg,var(--green) 0, var(--green) 8px,#4e770d 8px,#4e770d 14px);box-shadow:0 0 18px rgba(134,188,37,.25)}.kg{font-family:var(--font-mono);font-weight:900;color:#fff}
-    .filters{border:1px solid var(--line);background:var(--panel);border-radius:24px;padding:14px;display:grid;gap:10px;margin-bottom:18px}@media(min-width:800px){.filters{grid-template-columns:1fr 190px 190px}}.input{width:100%;border:1px solid rgba(255,255,255,.11);background:#000;color:#fff;border-radius:13px;padding:13px}.stats{display:grid;gap:12px;margin-bottom:18px}@media(min-width:700px){.stats{grid-template-columns:repeat(3,1fr)}}.stat{border:1px solid var(--line);background:rgba(0,0,0,.5);border-radius:20px;padding:16px}.stat small{color:var(--green);font-size:11px;text-transform:uppercase;letter-spacing:.16em;font-weight:900}.stat b{display:block;font-family:var(--font-display);font-size:30px;margin-top:6px}.avatar{width:62px;height:62px;display:grid;place-items:center;border:1px solid rgba(134,188,37,.35);border-radius:18px;background:rgba(134,188,37,.1);color:#d9ffad;font-family:var(--font-display);font-size:25px}.member-head{display:flex;gap:14px;align-items:center}.prgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}.pr{background:rgba(0,0,0,.5);border-radius:14px;padding:11px;text-align:center}.pr small{display:block;font-size:10px;color:#777;text-transform:uppercase;font-weight:900}.pr b{font-family:var(--font-mono);font-size:17px}.admin-box{border:1px solid rgba(134,188,37,.22);background:rgba(134,188,37,.08);border-radius:28px;padding:22px}.pending{border:1px solid var(--line);background:var(--panel);border-radius:26px;padding:18px}.pending-item{border:1px solid var(--line);background:rgba(0,0,0,.5);border-radius:18px;padding:14px;margin-top:12px}.form{display:grid;gap:13px}.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:18px;z-index:99}.modal{width:min(660px,100%);max-height:90vh;overflow:auto;border:1px solid rgba(134,188,37,.3);background:#070707;border-radius:28px;padding:24px;box-shadow:0 0 70px rgba(134,188,37,.22)}.modal-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:16px}.modal h3{font-family:var(--font-display);font-size:24px;text-transform:uppercase;letter-spacing:.1em;margin:0}.close{background:transparent;border:1px solid var(--line);color:#aaa;border-radius:99px;width:36px;height:36px;cursor:pointer}.notice{border:1px solid rgba(134,188,37,.25);background:rgba(134,188,37,.08);border-radius:18px;padding:14px;color:#d4d4d4;font-size:14px;line-height:1.55}.footer{text-align:center;border-top:1px solid var(--line);padding-top:28px;margin-top:36px;color:#666;text-transform:uppercase;letter-spacing:.22em;font-size:11px}.hidden{display:none!important}
-  </style>
+  <link rel="preload" href="static/fonts/SairaCondensed-ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
   <div class="wrap">
     <header class="topbar">
       <div class="brand">
-        <div class="crest"><span>Deloitte<b>HYROX</b>CLUB</span></div>
-        <div><div class="eyebrow">Madrid</div><div class="brandtitle">Club Hub</div></div>
+        <div class="crest"><img src="static/images/escudo.png" alt="Deloitte CrossFit & HYROX Club"></div>
+        <div><div class="eyebrow">Madrid</div><div class="brandtitle">The unique Club Hub</div></div>
       </div>
       <div class="status"><span class="dot"></span> CrossFit · HYROX</div>
     </header>
@@ -76,7 +21,7 @@
       <div>
         <div class="pill"><strong>●</strong> Deloitte CrossFit & HYROX Club</div>
         <h1>Train hard.<br>Progress <span>together.</span></h1>
-        <p>The central point for the club: upcoming events, sign-ups, member profiles, PRs, past competitions and admin moderation.</p>
+        <p>The central point for the club: upcoming events, sign-ups, member profiles, PRs, and past competitions.</p>
         <div class="actions">
           <button class="btn green" onclick="openModal('signupModal')">Apuntarme</button>
           <button class="btn dark" onclick="openModal('memberModal')">Crear perfil</button>
@@ -84,11 +29,7 @@
       </div>
       <aside class="hero-card">
         <div class="wordmark">
-          <div style="text-align:center;z-index:1">
-            <div class="d">Deloitte<span>.</span></div>
-            <div class="h">HYROX</div>
-            <div class="c">CLUB</div>
-          </div>
+          <img src="static/images/letras.png" alt="Deloitte CrossFit HYROX Club">
         </div>
         <div class="eyebrow" style="margin-bottom:10px">Próximo evento</div>
         <h2 style="font-family:var(--font-display);letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px;font-size:32px">Entreno DEKA</h2>

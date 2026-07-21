@@ -21,14 +21,7 @@ export default function Hero() {
       </div>
       <aside class="hero-card">
         <div class="wordmark">
-          <div style="text-align:center;z-index:1">
-            <div class="d">
-              Deloitte
-              <span>.</span>
-            </div>
-            <div class="h">HYROX</div>
-            <div class="c">CLUB</div>
-          </div>
+          <img src="/images/letras.png" alt="Deloitte CrossFit HYROX Club" />
         </div>
         <div class="eyebrow" style="margin-bottom:10px">
           Próximo evento
