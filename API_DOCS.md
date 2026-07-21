@@ -147,36 +147,7 @@ curl http://localhost:8000/api/members/pending
 ```
 
 #### POST /members
-Crear nuevo miembro.
-
-```bash
-curl -X POST http://localhost:8000/api/members \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "level": "beginner",
-    "goal": "hyrox",
-    "location": "Barcelona",
-    "bio": "Trying out HYROX!"
-  }'
-```
-
-**Required fields**: name, email, level, goal, location
-
-**Valid values**:
-- level: "beginner", "intermediate", "advanced"
-- goal: "crossfit", "hyrox", "general"
-
-**Response (201)**:
-```json
-{
-  "id": "mbr-1720000000000",
-  "name": "John Doe",
-  "approved": false,
-  ...
-}
-```
+Retirado (**410**). Usar `POST /auth/register`, que exige contraseña.
 
 #### PUT /members/{id}
 Actualizar miembro.
@@ -370,7 +341,8 @@ curl -X POST http://localhost:8000/api/signups \
 }
 ```
 
-**Nota**: No se puede hacer signup duplicado (mismo evento + email)
+**Nota**: No se puede hacer una reserva duplicada para el mismo `memberId` y
+evento, aunque el miembro cambie su email.
 
 #### DELETE /signups/{id}
 Cancelar signup.
@@ -444,8 +416,9 @@ Borra el WOD **y todos sus scores**, para no dejar scores huérfanos.
 Scores aprobados de ese WOD.
 
 #### POST /wods/{id}/scores
-Registra un score. Queda pendiente hasta que un admin lo apruebe. Un mismo email
-solo puede registrar un score por WOD (**409** si repite).
+Registra un score con la identidad de la sesión. Queda pendiente hasta que un
+admin lo apruebe. Un mismo `memberId` solo puede registrar un score por WOD
+(**409** si repite), aunque cambie su email.
 
 Para un WOD con `scoreType: "time"`, `value` se envía como `mm:ss` (o `h:mm:ss`)
 y se almacena en segundos. Para el resto, `value` es un número positivo.
@@ -453,7 +426,7 @@ y se almacena en segundos. Para el resto, `value` es un número positivo.
 ```bash
 curl -X POST http://localhost:8000/api/wods/wod-123/scores \
   -H "Content-Type: application/json" \
-  -d '{"memberName":"Ana","memberEmail":"ana@example.com","value":"12:40","scaled":false}'
+  -d '{"value":"12:40","scaled":false}'
 ```
 
 #### POST /wod-scores/{id}/approve *(admin)*
@@ -465,20 +438,19 @@ enviarlo corregido.
 
 #### GET /events/{id}/attendees
 Lista de asistentes en orden de reserva. Para usuarios no admin devuelve solo
-`id`, `memberName` y `signedUpAt`: los emails y comentarios se omiten. Un admin
+`memberName` y `signedUpAt`: los ids internos, emails y comentarios se omiten. Un admin
 recibe el registro completo.
 
 #### POST /events/{id}/cancel
-Cancela la reserva propia. El email con el que se reservó es lo que autoriza la
-cancelación. Libera la plaza y decrementa el contador de forma atómica.
+Cancela la reserva del `memberId` autenticado. Libera la plaza y decrementa el
+contador de forma atómica.
 
 ```bash
 curl -X POST http://localhost:8000/api/events/evt-123/cancel \
-  -H "Content-Type: application/json" \
-  -d '{"memberEmail":"ana@example.com"}'
+  -H "Content-Type: application/json"
 ```
 
-**404** si no hay ninguna reserva con ese email en ese evento.
+**404** si la sesión actual no tiene una reserva en ese evento.
 
 ### Aforo de eventos
 
@@ -493,10 +465,10 @@ compitiendo por la última plaza no pueden reservarla los dos.
 
 ### Métricas de PR
 
-`POST /prs` acepta `metric`: `weight` (kg), `time` (segundos) o `reps`. Si no se
-envía, se deduce del catálogo de movimientos (`lib/movements.ts`), de modo que un
-movimiento siempre se ordena como corresponde a su métrica: los tiempos de menor
-a mayor, los pesos y repeticiones de mayor a menor.
+`POST /prs` deriva siempre `metric` del catálogo de movimientos
+(`lib/movements.ts`); cualquier `metric` enviado por el cliente se ignora. Así
+un movimiento no puede manipularse para alterar el ranking: los tiempos se
+ordenan de menor a mayor y los pesos/repeticiones de mayor a menor.
 
 Los PRs guardados antes de que existiera `metric` no lo llevan y se interpretan
 como `weight`, que es lo que siempre fueron.
@@ -517,7 +489,9 @@ no se emite sesión.
 `{ email, password }`. Devuelve **401** con el mismo mensaje tanto si el email no
 existe como si la contraseña es incorrecta, para no revelar qué direcciones
 están registradas. Devuelve **403** si la cuenta aún no está aprobada. Con éxito
-emite una cookie `member_session` (HttpOnly, SameSite=Lax).
+emite una cookie `member_session` (HttpOnly, SameSite=Lax, `Secure` en
+producción). La sesión contiene tipo, id, emisión y caducidad firmados; un token
+de miembro no puede reutilizarse como sesión admin.
 
 #### POST /auth/logout
 Cierra la sesión del miembro.

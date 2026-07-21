@@ -21,7 +21,10 @@ import { toPublicPR } from "../types/PR.ts";
 import { toPublicWodScore } from "../types/Wod.ts";
 import { prService } from "../services/prService.ts";
 
-const anonymous = { params: { id: "evt-1" }, state: { isAdmin: false, member: null } };
+const anonymous = {
+  params: { id: "evt-1" },
+  state: { isAdmin: false, member: null },
+};
 
 Deno.env.set("SESSION_SECRET", "test-secret-at-least-32-characters-long!!");
 
@@ -40,7 +43,10 @@ Deno.test("acting on the club requires a logged-in member", async () => {
   const cases: [string, () => Response | Promise<Response>][] = [
     ["book a place", () =>
       signup.POST!(
-        jsonRequest({ memberName: "Impostor", memberEmail: "victim@example.com" }),
+        jsonRequest({
+          memberName: "Impostor",
+          memberEmail: "victim@example.com",
+        }),
         anonymous as never,
       )],
     ["cancel a booking", () =>
@@ -66,7 +72,10 @@ Deno.test("acting on the club requires a logged-in member", async () => {
           memberEmail: "victim@example.com",
           value: 100,
         }),
-        { params: { id: "wod-1" }, state: { isAdmin: false, member: null } } as never,
+        {
+          params: { id: "wod-1" },
+          state: { isAdmin: false, member: null },
+        } as never,
       )],
   ];
 
@@ -202,7 +211,10 @@ Deno.test("register, approval, login, middleware session, and logout work end to
       anonymous as never,
     );
     assertEquals(loggedOut.status, 200);
-    assertEquals(loggedOut.headers.get("set-cookie")?.includes("Max-Age=0"), true);
+    assertEquals(
+      loggedOut.headers.get("set-cookie")?.includes("Max-Age=0"),
+      true,
+    );
   } finally {
     if (prId) await prService.delete(prId);
     if (memberId) await memberService.delete(memberId);
@@ -250,7 +262,10 @@ Deno.test("editing a member requires being that member or an admin", async () =>
 
   const anon = await memberById.DELETE!(
     new Request("http://localhost/x", { method: "DELETE" }),
-    { params: { id: "mbr-victim" }, state: { isAdmin: false, member: null } } as never,
+    {
+      params: { id: "mbr-victim" },
+      state: { isAdmin: false, member: null },
+    } as never,
   );
   assertEquals(anon.status, 403);
 });

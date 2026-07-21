@@ -18,8 +18,11 @@ This project uses the current Deno Deploy platform at
    (`Deno.openKv()`), with no connection string or token in the code.
 5. In the production environment variables, set both required secrets:
    - `ADMIN_PASSCODE`: the passcode for the site's admin area.
-   - `SESSION_SECRET`: a unique random secret of at least 32 characters used to
+   - `SESSION_SECRET`: a unique random secret of at least 32 bytes used to
      sign session cookies.
+   - Set `COOKIE_SECURE=true` as well when running behind a production HTTPS
+     proxy outside Deno Deploy. Deno Deploy enables the `Secure` cookie flag
+     automatically.
 6. Deploy the default branch (`main`) and wait for the build and warm-up stages
    to finish in the Deno Deploy dashboard.
 
@@ -37,6 +40,8 @@ verify that:
 3. Admin login succeeds using `ADMIN_PASSCODE` and persists after reload.
 4. Approving a pending member removes it from the moderation list and exposes it
    in the members view.
+5. The approved member can log in, reserve and cancel their own place, submit a
+   PR and submit a WOD score; logout returns those actions to the login prompt.
 
 ## Local validation
 

@@ -118,7 +118,7 @@ La aplicación estará disponible en `http://localhost:8000`
 - `GET /api/members` - Miembros aprobados (con búsqueda/filtros)
 - `GET /api/members/[id]` - Detalle del miembro
 - `GET /api/members/pending` - Miembros pendientes (admin)
-- `POST /api/members` - Crear miembro
+- `POST /api/members` - Retirado (410); usar registro autenticado
 - `PUT /api/members/[id]` - Actualizar miembro
 - `DELETE /api/members/[id]` - Eliminar miembro
 
@@ -140,10 +140,18 @@ La aplicación estará disponible en `http://localhost:8000`
 
 #### Signups API
 
-- `GET /api/signups` - Todos los signups (con filtro por evento)
-- `GET /api/signups/[id]` - Detalle del signup
-- `POST /api/signups` - Crear signup (apuntarse)
-- `DELETE /api/signups/[id]` - Cancelar signup
+- `GET /api/signups` - Reservas completas (solo admin)
+- `GET /api/signups/[id]` - Reserva propia o admin
+- `POST /api/events/[id]/signup` - Reservar con la identidad de la sesión
+- `POST /api/events/[id]/cancel` - Cancelar la reserva propia
+- `POST /api/signups` - Retirado (410)
+
+#### Member Auth API
+
+- `POST /api/auth/register` - Crear cuenta pendiente de aprobación
+- `POST /api/auth/login` - Iniciar sesión
+- `GET /api/auth/me` - Consultar la sesión actual
+- `POST /api/auth/logout` - Cerrar sesión
 
 #### Admin API
 
@@ -380,7 +388,9 @@ curl -X POST http://localhost:8000/api/signups \
 - Barra de plazas restantes y estado "Completo" en cada tarjeta.
 - Lista de asistentes por evento. Sin sesión de admin se devuelven solo los
   nombres: los emails y comentarios no se exponen.
-- Cancelación propia con el email usado al reservar, que libera la plaza.
+- Reservas y cancelaciones ligadas al `memberId` estable de la sesión; cambiar
+  el email no pierde ni duplica la reserva.
+- Los eventos pasados o no publicados no admiten reservas.
 
 ### Calendario
 
@@ -453,7 +463,6 @@ pase `SEED_ALLOW_REMOTE=1`.
 
 ### Pendiente
 
-- [ ] Cuentas de usuario propias (hoy la identidad de un atleta es su email)
 - [ ] Subida de imágenes para eventos, resultados y avatares
 - [ ] Notificaciones por email al aprobar o al liberarse una plaza
 - [ ] Lista de espera cuando un evento se llena
@@ -466,6 +475,9 @@ pase `SEED_ALLOW_REMOTE=1`.
 - **Passcode**: ClubAdmin2026
 
 ### Miembros de prueba
+
+Tras ejecutar `scripts/seed.ts`, las cuentas demo usan la contraseña
+`ClubDemo2026` (o el valor de `SEED_PASSWORD`).
 
 - Demo Athlete (Intermediate, CrossFit/HYROX) - APPROVED
 - Member B (Advanced, Strength) - APPROVED
@@ -499,7 +511,7 @@ Ver [API_DOCS.md](./API_DOCS.md) para documentación detallada de endpoints.
 
 ---
 
-**Status**: 🟢 Fase 4 completada | Reservas con aforo, calendario, PRs
-multimétrica, WODs y moderación, sobre persistencia Deno KV
+**Status**: 🟢 Club con cuentas, sesiones firmadas, autorización por miembro,
+reservas con aforo, PRs, WODs y moderación sobre Deno KV
 
 **Última actualización**: 21 Jul 2026

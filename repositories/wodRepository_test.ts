@@ -1,6 +1,9 @@
 import { assert, assertEquals, assertRejects } from "std/assert/mod.ts";
 import { withKv } from "./test_utils.ts";
-import { createWodRepository, DuplicateWodScoreError } from "./wodRepository.ts";
+import {
+  createWodRepository,
+  DuplicateWodScoreError,
+} from "./wodRepository.ts";
 import type { CreateWodRequest } from "../types/Wod.ts";
 
 function wodData(overrides: Partial<CreateWodRequest> = {}): CreateWodRequest {

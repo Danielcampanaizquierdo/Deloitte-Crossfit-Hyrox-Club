@@ -218,7 +218,10 @@ Deno.test("a burst of bookings succeeds while capacity remains", async () => {
         })),
     );
 
-    assertEquals(results.filter((result) => result.status === "fulfilled").length, 10);
+    assertEquals(
+      results.filter((result) => result.status === "fulfilled").length,
+      10,
+    );
     assertEquals((await events.get(event.id))?.attendees, 10);
   });
 });
@@ -377,7 +380,10 @@ Deno.test("an athlete finds their own booking by event and email", async () => {
     assert(signup);
 
     // Lookup normalizes casing, the same way the reservation key does.
-    const found = await signups.getByEventEmail(event.id, "athlete@example.com");
+    const found = await signups.getByEventEmail(
+      event.id,
+      "athlete@example.com",
+    );
     assertEquals(found?.id, signup!.id);
 
     assertEquals(
