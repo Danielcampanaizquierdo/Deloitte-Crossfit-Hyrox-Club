@@ -35,6 +35,14 @@ export const handler = {
     try {
       const data = await req.json();
       const signup = await signupService.create(data);
+
+      if (!signup) {
+        return new Response(JSON.stringify({ error: "Event not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify(signup), {
         status: 201,
         headers: { "Content-Type": "application/json" },
