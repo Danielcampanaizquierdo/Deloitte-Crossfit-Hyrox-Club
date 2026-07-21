@@ -1,7 +1,3 @@
-/* Self-hosted display font (Saira Condensed ExtraBold, SIL Open Font
-   License) so headers, nav tabs and buttons render consistently on
-   Android/Linux, where Impact does not exist. Licenses in
-   /fonts/SAIRA-OFL.txt (and /fonts/OFL.txt for the retained Anton file). */
 @font-face{
   font-family:'ClubDisplay';
   src:url('fonts/SairaCondensed-ExtraBold.woff2') format('woff2');
