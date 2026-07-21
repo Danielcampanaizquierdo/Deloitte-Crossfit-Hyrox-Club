@@ -41,6 +41,13 @@ export class DuplicateSignupError extends Error {
   }
 }
 
+export class EventFullError extends Error {
+  constructor(eventId: string) {
+    super(`Event "${eventId}" has no spots left`);
+    this.name = "EventFullError";
+  }
+}
+
 function generateId(): string {
   return `signup-${crypto.randomUUID()}`;
 }
@@ -50,6 +57,9 @@ export interface SignupRepository {
   list(): Promise<EventSignup[]>;
   listByEvent(eventId: string): Promise<EventSignup[]>;
   listByMember(memberId: string): Promise<EventSignup[]>;
+  /** Resolves the reservation key straight to its signup, so an athlete can
+   * find (and cancel) their own booking with just an email. */
+  getByEventEmail(eventId: string, email: string): Promise<EventSignup | null>;
   // Returns null when the referenced event does not exist.
   create(data: CreateSignupRequest): Promise<EventSignup | null>;
   delete(id: string): Promise<boolean>;
@@ -99,6 +109,16 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
     return signups;
   }
 
+  async function getByEventEmail(
+    eventId: string,
+    email: string,
+  ): Promise<EventSignup | null> {
+    const index = await kv.get<string>(signupEmailKey(eventId, email));
+    if (index.value === null) return null;
+    const record = await kv.get<EventSignup>(signupKey(index.value));
+    return record.value;
+  }
+
   async function create(
     data: CreateSignupRequest,
   ): Promise<EventSignup | null> {
@@ -119,6 +139,16 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
       const eventEntry = await kv.get<Event>(eventKey(data.eventId));
       if (eventEntry.value === null) return null;
       const event = eventEntry.value;
+
+      // Capacity is checked against the same event entry the transaction
+      // below check()s, so two bookings racing for the last spot cannot both
+      // commit: the loser's commit fails, rereads a now-full event, and
+      // throws here on the retry.
+      if (event.capacity && event.capacity > 0 &&
+        event.attendees >= event.capacity
+      ) {
+        throw new EventFullError(data.eventId);
+      }
 
       const primary = await kv.get<EventSignup>(signupKey(id));
 
@@ -200,6 +230,7 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
     list,
     listByEvent,
     listByMember,
+    getByEventEmail,
     create,
     delete: deleteSignup,
   };

@@ -7,14 +7,17 @@ export const handler: Handlers<unknown, State> = {
     if (!ctx.state.isAdmin) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
-    let body: Record<string, string>;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
       return Response.json({ error: "JSON inválido" }, { status: 400 });
     }
 
-    const { title, date, location, description, type } = body;
+    const { title, date, location, description, type } = body as Record<
+      string,
+      string
+    >;
     if (!title || !date || !location || !description) {
       return Response.json(
         { error: "Campos requeridos: title, date, location, description" },
@@ -22,7 +25,29 @@ export const handler: Handlers<unknown, State> = {
       );
     }
 
-    const event = await eventService.create({ title, date, location, description, type });
+    // Absent or blank capacity means an uncapped event, which is how every
+    // event created before capacity existed behaves.
+    const rawCapacity = body.capacity;
+    let capacity: number | undefined;
+    if (rawCapacity !== undefined && rawCapacity !== null && rawCapacity !== "") {
+      const parsed = Number(rawCapacity);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return Response.json(
+          { error: "capacity debe ser un número positivo" },
+          { status: 400 },
+        );
+      }
+      capacity = Math.round(parsed) || undefined;
+    }
+
+    const event = await eventService.create({
+      title,
+      date,
+      location,
+      description,
+      type,
+      capacity,
+    });
     const approved = await eventService.update(event.id, { approved: true });
     return Response.json(approved, { status: 201 });
   },

@@ -12,6 +12,7 @@
 // service-level calculation over that result.
 
 import type { CreatePRRequest, PR, UpdatePRRequest } from "../types/PR.ts";
+import { movementMetric } from "../lib/movements.ts";
 import { prApprovalKey, prKey, prMemberKey, prMovementKey } from "./keys.ts";
 
 const MAX_RETRIES = 3;
@@ -99,6 +100,10 @@ export function createPrRepository(kv: Deno.Kv): PrRepository {
       memberEmail: data.memberEmail,
       movement: data.movement,
       weight: data.weight,
+      // Derived from the catalogue rather than trusted from the request, so a
+      // movement always ranks the way its own metric implies. An explicit
+      // metric still wins, for movements outside the catalogue.
+      metric: data.metric ?? movementMetric(data.movement),
       date: new Date(data.date),
       approved: false,
       createdAt: now,

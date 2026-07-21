@@ -2,6 +2,7 @@ import { EventSignup, CreateSignupRequest } from "../types/Signup.ts";
 import {
   createSignupRepository,
   DuplicateSignupError,
+  EventFullError,
   SignupRepository,
 } from "../repositories/signupRepository.ts";
 import { kv } from "../lib/kv.ts";
@@ -33,6 +34,13 @@ export function createSignupService(repo: SignupRepository) {
       return signups.some((s) => s.memberEmail === memberEmail);
     },
 
+    async getByEventEmail(
+      eventId: string,
+      memberEmail: string,
+    ): Promise<EventSignup | null> {
+      return repo.getByEventEmail(eventId, memberEmail);
+    },
+
     async create(data: CreateSignupRequest): Promise<EventSignup | null> {
       try {
         // Returns null when the referenced event does not exist, consistent
@@ -46,8 +54,21 @@ export function createSignupService(repo: SignupRepository) {
           // err.message.includes("Already signed up") to return HTTP 409.
           throw new Error("Already signed up for this event");
         }
+        if (err instanceof EventFullError) {
+          // Same message-based contract, for the 409 the signup route returns
+          // when the last spot went to somebody else.
+          throw new Error("Event is full");
+        }
         throw err;
       }
+    },
+
+    /** Cancels an athlete's own booking, identified by the event and the email
+     * they booked with. Returns false when there is nothing to cancel. */
+    async cancelByEmail(eventId: string, memberEmail: string): Promise<boolean> {
+      const signup = await repo.getByEventEmail(eventId, memberEmail);
+      if (!signup) return false;
+      return repo.delete(signup.id);
     },
 
     async delete(id: string): Promise<boolean> {

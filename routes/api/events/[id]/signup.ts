@@ -34,6 +34,12 @@ export const handler: Handlers<unknown, State> = {
       if (err instanceof Error && err.message.includes("Already signed up")) {
         return Response.json({ error: "Ya estás apuntado a este evento" }, { status: 409 });
       }
+      if (err instanceof Error && err.message.includes("Event is full")) {
+        return Response.json(
+          { error: "Este evento ya está completo" },
+          { status: 409 },
+        );
+      }
       throw err;
     }
   },

@@ -11,6 +11,8 @@ import * as $api_admin_prs_id_approve from "./routes/api/admin/prs/[id]/approve.
 import * as $api_admin_results_id_approve from "./routes/api/admin/results/[id]/approve.ts";
 import * as $api_events_id_ from "./routes/api/events/[id].ts";
 import * as $api_events_id_approve from "./routes/api/events/[id]/approve.ts";
+import * as $api_events_id_attendees from "./routes/api/events/[id]/attendees.ts";
+import * as $api_events_id_cancel from "./routes/api/events/[id]/cancel.ts";
 import * as $api_events_id_delete from "./routes/api/events/[id]/delete.ts";
 import * as $api_events_id_signup from "./routes/api/events/[id]/signup.ts";
 import * as $api_events_index from "./routes/api/events/index.ts";
@@ -32,6 +34,11 @@ import * as $api_results_index from "./routes/api/results/index.ts";
 import * as $api_results_pending from "./routes/api/results/pending.ts";
 import * as $api_signups_id_ from "./routes/api/signups/[id].ts";
 import * as $api_signups_index from "./routes/api/signups/index.ts";
+import * as $api_wod_scores_id_approve from "./routes/api/wod-scores/[id]/approve.ts";
+import * as $api_wod_scores_id_delete from "./routes/api/wod-scores/[id]/delete.ts";
+import * as $api_wods_id_delete from "./routes/api/wods/[id]/delete.ts";
+import * as $api_wods_id_scores from "./routes/api/wods/[id]/scores.ts";
+import * as $api_wods_index from "./routes/api/wods/index.ts";
 import * as $index from "./routes/index.tsx";
 import * as $AdminPanel from "./islands/AdminPanel.tsx";
 import * as $AdminPendingPanel from "./islands/AdminPendingPanel.tsx";
@@ -66,6 +73,8 @@ const manifest = {
     "./routes/api/admin/results/[id]/approve.ts": $api_admin_results_id_approve,
     "./routes/api/events/[id].ts": $api_events_id_,
     "./routes/api/events/[id]/approve.ts": $api_events_id_approve,
+    "./routes/api/events/[id]/attendees.ts": $api_events_id_attendees,
+    "./routes/api/events/[id]/cancel.ts": $api_events_id_cancel,
     "./routes/api/events/[id]/delete.ts": $api_events_id_delete,
     "./routes/api/events/[id]/signup.ts": $api_events_id_signup,
     "./routes/api/events/index.ts": $api_events_index,
@@ -87,6 +96,11 @@ const manifest = {
     "./routes/api/results/pending.ts": $api_results_pending,
     "./routes/api/signups/[id].ts": $api_signups_id_,
     "./routes/api/signups/index.ts": $api_signups_index,
+    "./routes/api/wod-scores/[id]/approve.ts": $api_wod_scores_id_approve,
+    "./routes/api/wod-scores/[id]/delete.ts": $api_wod_scores_id_delete,
+    "./routes/api/wods/[id]/delete.ts": $api_wods_id_delete,
+    "./routes/api/wods/[id]/scores.ts": $api_wods_id_scores,
+    "./routes/api/wods/index.ts": $api_wods_index,
     "./routes/index.tsx": $index,
   },
   islands: {

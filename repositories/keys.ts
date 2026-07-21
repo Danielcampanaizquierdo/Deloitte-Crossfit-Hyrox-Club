@@ -87,3 +87,42 @@ export function signupMemberKey(memberId: string, id: string): Deno.KvKey {
 export function signupEmailKey(eventId: string, email: string): Deno.KvKey {
   return ["signups_by_event_email", eventId, normalizeEmail(email)];
 }
+
+// WODs: ["wods", id]
+export function wodKey(id: string): Deno.KvKey {
+  return ["wods", id];
+}
+
+// WODs index: ["wods_by_approval", approved, id]
+export function wodApprovalKey(approved: boolean, id: string): Deno.KvKey {
+  return ["wods_by_approval", approved, id];
+}
+
+// WODs index: ["wods_by_date", timestamp, id]
+export function wodDateKey(timestamp: number, id: string): Deno.KvKey {
+  return ["wods_by_date", timestamp, id];
+}
+
+// WOD scores: ["wod_scores", id]
+export function wodScoreKey(id: string): Deno.KvKey {
+  return ["wod_scores", id];
+}
+
+// WOD scores index: ["wod_scores_by_wod", wodId, id]
+export function wodScoreWodKey(wodId: string, id: string): Deno.KvKey {
+  return ["wod_scores_by_wod", wodId, id];
+}
+
+// WOD scores index: ["wod_scores_by_approval", approved, id]
+export function wodScoreApprovalKey(
+  approved: boolean,
+  id: string,
+): Deno.KvKey {
+  return ["wod_scores_by_approval", approved, id];
+}
+
+// WOD scores index: ["wod_scores_by_wod_email", wodId, normalizedEmail].
+// Doubles as the one-score-per-athlete-per-WOD reservation key.
+export function wodScoreEmailKey(wodId: string, email: string): Deno.KvKey {
+  return ["wod_scores_by_wod_email", wodId, normalizeEmail(email)];
+}
