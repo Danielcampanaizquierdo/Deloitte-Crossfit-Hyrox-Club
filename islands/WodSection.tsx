@@ -4,7 +4,11 @@ import { Fragment, h } from "preact";
 import { useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
 import { toast } from "../lib/toast.ts";
-import { formatSeconds, parseTimeToSeconds } from "../lib/movements.ts";
+import {
+  formatCalendarDate,
+  formatSeconds,
+  parseTimeToSeconds,
+} from "../lib/movements.ts";
 import {
   type WodFormat,
   WOD_FORMAT_LABELS,
@@ -112,7 +116,7 @@ export default function WodSection({ wods: initial, isAdmin }: Props) {
                   <h3>{wod.name}</h3>
                 </div>
                 <span class="badge">
-                  {new Date(wod.date).toLocaleDateString("es-ES", {
+                  {formatCalendarDate(wod.date, {
                     day: "numeric",
                     month: "short",
                   })}

@@ -23,7 +23,7 @@ import { memberService } from "../services/memberService.ts";
 import { prService } from "../services/prService.ts";
 import { resultService } from "../services/resultService.ts";
 import { wodService } from "../services/wodService.ts";
-import { formatSeconds } from "../lib/movements.ts";
+import { formatCalendarDate, formatSeconds } from "../lib/movements.ts";
 import { WOD_SCORE_LABELS } from "../types/Wod.ts";
 import { State } from "../types/State.ts";
 
@@ -306,7 +306,7 @@ export default function Home({ data }: PageProps<PageData>) {
                   : <div class="imgph" aria-hidden="true">🏅</div>}
                 <div class="card-body">
                   <div class="eyebrow">
-                    {new Date(r.date).toLocaleDateString("es-ES", {
+                    {formatCalendarDate(r.date, {
                       day: "numeric",
                       month: "long",
                       year: "numeric",

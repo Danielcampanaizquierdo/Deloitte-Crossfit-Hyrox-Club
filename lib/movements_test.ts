@@ -3,6 +3,7 @@ import {
   formatPRValue,
   formatSeconds,
   isHigherBetter,
+  localDateTimeToIso,
   movementMetric,
   parsePRValue,
   parseTimeToSeconds,
@@ -79,6 +80,31 @@ Deno.test("parsePRValue converts raw form input per metric", () => {
   assertEquals(parsePRValue("92.5", "weight"), 92.5);
   // Reps are whole numbers.
   assertEquals(parsePRValue("42.6", "reps"), 43);
+});
+
+Deno.test("a datetime-local value survives the round trip to UTC and back", () => {
+  // The assertion is timezone-independent on purpose: whatever zone this runs
+  // in, the instant we store must render back as the wall clock the admin
+  // typed. Storing the raw string instead shifted events by the server's UTC
+  // offset -- two hours for the Madrid club.
+  for (const entered of ["2026-08-15T10:00", "2026-01-20T19:30"]) {
+    const iso = localDateTimeToIso(entered);
+    if (iso === null) throw new Error(`expected ${entered} to parse`);
+
+    const back = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const localAgain = `${back.getFullYear()}-${pad(back.getMonth() + 1)}-` +
+      `${pad(back.getDate())}T${pad(back.getHours())}:${pad(back.getMinutes())}`;
+
+    assertEquals(localAgain, entered);
+    // What we send must be an absolute instant, not a bare wall clock.
+    assertEquals(iso.endsWith("Z"), true);
+  }
+});
+
+Deno.test("localDateTimeToIso rejects unusable input", () => {
+  assertEquals(localDateTimeToIso(""), null);
+  assertEquals(localDateTimeToIso("not a date"), null);
 });
 
 Deno.test("parsePRValue rejects non-positive and non-numeric values", () => {

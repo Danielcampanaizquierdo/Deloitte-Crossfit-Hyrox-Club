@@ -6,6 +6,47 @@
 // before metric existed have no value and fall back to "weight", which is what
 // they always were.
 
+/** Converts a `<input type="datetime-local">` value into a UTC instant.
+ *
+ * That input yields a bare wall-clock string ("2026-08-15T10:00") with no zone,
+ * meaning "10:00 where the user is". Posting it raw let the *server* parse it,
+ * and Deno Deploy runs in UTC — so an admin in Madrid scheduling 10:00 stored
+ * 10:00Z, which every member then saw as 12:00. Converting here, in the
+ * browser, is the only place the user's real timezone is known.
+ *
+ * Returns null for input that is not a usable datetime, so callers can reject
+ * it rather than post an Invalid Date. */
+export function localDateTimeToIso(value: string): string | null {
+  if (!value) return null;
+  // No trailing Z and no offset: the runtime reads this as local time, which
+  // in the browser is exactly what the user typed.
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+/** Formats a calendar-date value (a PR, WOD or result date) as the day that
+ * was actually entered.
+ *
+ * `<input type="date">` yields "2026-08-15", which the spec parses as UTC
+ * midnight. Rendering that with the viewer's local timezone shows the previous
+ * day anywhere west of UTC, so these are formatted in UTC — the zone they were
+ * stored in. Event dates are genuine instants and must NOT use this; they are
+ * meant to shift with the viewer. */
+export function formatCalendarDate(
+  value: string | Date,
+  options: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  },
+): string {
+  return new Date(value).toLocaleDateString("es-ES", {
+    ...options,
+    timeZone: "UTC",
+  });
+}
+
 export type PRMetric = "weight" | "time" | "reps";
 
 export type MovementCategory =

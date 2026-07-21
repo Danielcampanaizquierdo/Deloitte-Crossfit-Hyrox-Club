@@ -6,6 +6,7 @@ import Modal from "../components/Modal.tsx";
 import { toast } from "../lib/toast.ts";
 import { on, OPEN_JOIN } from "../lib/bus.ts";
 import {
+  formatCalendarDate,
   formatPRValue,
   movementMetric,
   type PRMetric,
@@ -260,13 +261,7 @@ export default function MembersSection(
                           pr.metric ?? movementMetric(pr.movement),
                         )}
                       </b>
-                      <small>
-                        {new Date(pr.date).toLocaleDateString("es-ES", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </small>
+                      <small>{formatCalendarDate(pr.date)}</small>
                     </li>
                   ))}
                 </ul>

@@ -6,7 +6,9 @@ import Modal from "../components/Modal.tsx";
 import { toast } from "../lib/toast.ts";
 import { emit, PENDING_CHANGED } from "../lib/bus.ts";
 import {
+  formatCalendarDate,
   formatPRValue,
+  localDateTimeToIso,
   movementMetric,
   type PRMetric,
 } from "../lib/movements.ts";
@@ -263,7 +265,7 @@ function ModerationPanel(
             <PendingRow
               key={r.id}
               label={r.name}
-              sub={new Date(r.date).toLocaleDateString("es-ES")}
+              sub={formatCalendarDate(r.date, { day: "numeric", month: "short", year: "numeric" })}
               onApprove={() =>
                 act(`/api/results/${r.id}/approve`, "POST", r.id, setResults,
                   "Resultado aprobado.")}
@@ -364,6 +366,16 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
       toast("Rellena todos los campos obligatorios.", "error");
       return;
     }
+
+    // Resolve the wall clock the admin typed into an absolute instant here,
+    // where their timezone is known. Sending the bare value let the server
+    // read it as UTC and shifted every event by the club's offset.
+    const isoDate = localDateTimeToIso(date);
+    if (!isoDate) {
+      toast("La fecha del evento no es válida.", "error");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/events", {
@@ -371,7 +383,7 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          date,
+          date: isoDate,
           location: location.trim(),
           description: description.trim(),
           type,
