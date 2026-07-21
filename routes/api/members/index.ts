@@ -3,6 +3,16 @@ import { memberService } from "../../../services/memberService.ts";
 import { State } from "../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
+  // Approved members only, optionally filtered by ?search=, ?level= and
+  // ?goal=. Never exposes pending profiles, which nobody has approved yet.
+  async GET(req, _ctx) {
+    const params = new URL(req.url).searchParams;
+    const search = params.get("search") ?? "";
+    const level = params.get("level") ?? undefined;
+    const goal = params.get("goal") ?? undefined;
+    return Response.json(await memberService.search(search, level, goal));
+  },
+
   async POST(req, _ctx) {
     let body: Record<string, string>;
     try {

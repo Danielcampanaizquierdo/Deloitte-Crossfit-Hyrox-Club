@@ -3,6 +3,16 @@ import { resultService } from "../../../services/resultService.ts";
 import { State } from "../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
+  // Approved results, most recent first.
+  async GET(_req, _ctx) {
+    const results = await resultService.getApproved();
+    return Response.json(
+      results.sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    );
+  },
+
   async POST(req, ctx) {
     if (!ctx.state.isAdmin) {
       return Response.json({ error: "Forbidden" }, { status: 403 });

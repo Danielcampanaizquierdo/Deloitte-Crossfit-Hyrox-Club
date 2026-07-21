@@ -3,6 +3,15 @@ import { prService } from "../../../services/prService.ts";
 import { State } from "../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
+  // Approved PRs only, optionally narrowed to one movement with ?movement=.
+  async GET(req, _ctx) {
+    const movement = new URL(req.url).searchParams.get("movement");
+    const prs = movement
+      ? await prService.getByMovement(movement)
+      : await prService.getApproved();
+    return Response.json(prs);
+  },
+
   async POST(req, _ctx) {
     let body: Record<string, unknown>;
     try {

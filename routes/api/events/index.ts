@@ -3,6 +3,19 @@ import { eventService } from "../../../services/eventService.ts";
 import { State } from "../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
+  // Public listing is approved events only; an admin also sees what is still
+  // waiting for moderation.
+  async GET(_req, ctx) {
+    const events = ctx.state.isAdmin
+      ? await eventService.getAll()
+      : (await eventService.getAll()).filter((e) => e.approved);
+    return Response.json(
+      events.sort((a, b) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      ),
+    );
+  },
+
   async POST(req, ctx) {
     if (!ctx.state.isAdmin) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
