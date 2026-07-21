@@ -17,16 +17,35 @@ export const handler: Handlers<unknown, State> = {
 
     const adminPasscode = Deno.env.get("ADMIN_PASSCODE") ?? "";
     if (!adminPasscode) {
-      return Response.json({ error: "ADMIN_PASSCODE not configured" }, { status: 500 });
+      return Response.json(
+        { error: "El servidor no tiene ADMIN_PASSCODE configurado." },
+        { status: 500 },
+      );
     }
 
     if (body.passcode !== adminPasscode) {
       return Response.json({ error: "Passcode incorrecto" }, { status: 401 });
     }
 
-    const cookie = await createSession();
-    return Response.json({ success: true }, {
-      headers: { "set-cookie": cookie },
-    });
+    // Issuing the cookie can fail on a misconfigured SESSION_SECRET, which
+    // happens *after* the passcode matched. Letting that throw produced a bare
+    // 500 that the UI reported as "passcode incorrecto", sending admins to
+    // re-check a passcode that was right all along.
+    try {
+      const cookie = await createSession();
+      return Response.json({ success: true }, {
+        headers: { "set-cookie": cookie },
+      });
+    } catch (err) {
+      console.error("admin login: could not create session", err);
+      return Response.json(
+        {
+          error:
+            "Passcode correcto, pero el servidor no puede crear la sesión: " +
+            "revisa SESSION_SECRET (mínimo 32 caracteres).",
+        },
+        { status: 500 },
+      );
+    }
   },
 };

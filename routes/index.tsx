@@ -89,6 +89,7 @@ export const handler: Handlers<PageData, State> = {
       .filter((p) => p.approved)
       .map((p) => ({
         id: p.id,
+        athleteId: p.memberId || p.memberName.trim().toLowerCase(),
         memberName: p.memberName,
         movement: p.movement,
         weight: p.weight,
@@ -109,7 +110,6 @@ export const handler: Handlers<PageData, State> = {
         memberName: s.memberName,
         value: s.value,
         scaled: s.scaled,
-        notes: s.notes,
       })),
     }));
 

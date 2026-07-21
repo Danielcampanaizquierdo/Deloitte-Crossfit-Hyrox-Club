@@ -46,9 +46,24 @@ export const handler: Handlers<unknown, State> = {
       );
     }
 
-    return Response.json(
-      { member: toPublicMember(member) },
-      { headers: { "set-cookie": await createMemberSession(member.id) } },
-    );
+    // Same failure mode as the admin route: the credentials were fine and the
+    // session could still fail to issue on a misconfigured SESSION_SECRET.
+    // Say so rather than letting it read as a rejected password.
+    try {
+      return Response.json(
+        { member: toPublicMember(member) },
+        { headers: { "set-cookie": await createMemberSession(member.id) } },
+      );
+    } catch (err) {
+      console.error("member login: could not create session", err);
+      return Response.json(
+        {
+          error:
+            "Credenciales correctas, pero el servidor no puede crear la " +
+            "sesión. Avisa a un administrador (SESSION_SECRET).",
+        },
+        { status: 500 },
+      );
+    }
   },
 };

@@ -2,7 +2,9 @@ import { EventSignup, CreateSignupRequest } from "../types/Signup.ts";
 import {
   createSignupRepository,
   DuplicateSignupError,
+  EventAlreadyStartedError,
   EventFullError,
+  EventNotPublishedError,
   SignupRepository,
 } from "../repositories/signupRepository.ts";
 import { kv } from "../lib/kv.ts";
@@ -59,14 +61,29 @@ export function createSignupService(repo: SignupRepository) {
           // when the last spot went to somebody else.
           throw new Error("Event is full");
         }
+        if (err instanceof EventNotPublishedError) {
+          throw new Error("Event is not open for booking");
+        }
+        if (err instanceof EventAlreadyStartedError) {
+          throw new Error("Event has already started");
+        }
         throw err;
       }
     },
 
-    /** Cancels an athlete's own booking, identified by the event and the email
-     * they booked with. Returns false when there is nothing to cancel. */
-    async cancelByEmail(eventId: string, memberEmail: string): Promise<boolean> {
-      const signup = await repo.getByEventEmail(eventId, memberEmail);
+    /** Cancels the session holder's booking by stable member id. The email
+     * fallback is restricted to records created before member sessions stored
+     * an owner id. */
+    async cancelForMember(
+      eventId: string,
+      memberId: string,
+      legacyEmail: string,
+    ): Promise<boolean> {
+      let signup = await repo.getByEventMember(eventId, memberId);
+      if (!signup) {
+        const legacy = await repo.getByEventEmail(eventId, legacyEmail);
+        if (legacy && !legacy.memberId) signup = legacy;
+      }
       if (!signup) return false;
       return repo.delete(signup.id);
     },

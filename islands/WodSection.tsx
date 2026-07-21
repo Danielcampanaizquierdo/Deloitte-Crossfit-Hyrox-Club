@@ -23,7 +23,6 @@ export interface WodScoreItem {
   memberName: string;
   value: number;
   scaled: boolean;
-  notes?: string;
 }
 
 export interface WodItem {

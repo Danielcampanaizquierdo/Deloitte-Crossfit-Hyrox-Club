@@ -12,7 +12,17 @@ import type {
   Event,
   UpdateEventRequest,
 } from "../types/Event.ts";
-import { eventApprovalKey, eventDateKey, eventKey } from "./keys.ts";
+import type { EventSignup } from "../types/Signup.ts";
+import {
+  eventApprovalKey,
+  eventDateKey,
+  eventKey,
+  signupEmailKey,
+  signupEventKey,
+  signupEventMemberKey,
+  signupKey,
+  signupMemberKey,
+} from "./keys.ts";
 
 const MAX_RETRIES = 3;
 
@@ -45,6 +55,44 @@ export interface EventRepository {
 }
 
 export function createEventRepository(kv: Deno.Kv): EventRepository {
+  /** Removes reservations after the event record is gone. With no event left,
+   * new reservations cannot commit, so this sweep cannot race a new orphan
+   * into existence. Calling delete again also repairs a previously interrupted
+   * sweep. */
+  async function cleanupSignups(eventId: string): Promise<void> {
+    const indexed: { id: string; indexKey: Deno.KvKey }[] = [];
+    for await (
+      const entry of kv.list<string>({
+        prefix: ["signups_by_event", eventId],
+      })
+    ) {
+      indexed.push({ id: entry.value, indexKey: entry.key });
+    }
+
+    for (const { id, indexKey } of indexed) {
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        const primary = await kv.get<EventSignup>(signupKey(id));
+        if (!primary.value) {
+          await kv.delete(indexKey);
+          break;
+        }
+
+        const signup = primary.value;
+        const atomic = kv.atomic()
+          .check(primary)
+          .delete(signupKey(id))
+          .delete(signupEventKey(eventId, id))
+          .delete(signupEmailKey(eventId, signup.memberEmail));
+        if (signup.memberId) {
+          atomic
+            .delete(signupMemberKey(signup.memberId, id))
+            .delete(signupEventMemberKey(eventId, signup.memberId));
+        }
+        if ((await atomic.commit()).ok) break;
+      }
+    }
+  }
+
   async function get(id: string): Promise<Event | null> {
     const entry = await kv.get<Event>(eventKey(id));
     return entry.value;
@@ -154,7 +202,10 @@ export function createEventRepository(kv: Deno.Kv): EventRepository {
   async function deleteEvent(id: string): Promise<boolean> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const primary = await kv.get<Event>(eventKey(id));
-      if (primary.value === null) return false;
+      if (primary.value === null) {
+        await cleanupSignups(id);
+        return false;
+      }
       const current = primary.value;
 
       const res = await kv.atomic()
@@ -163,7 +214,10 @@ export function createEventRepository(kv: Deno.Kv): EventRepository {
         .delete(eventApprovalKey(current.approved, id))
         .delete(eventDateKey(current.date.getTime(), id))
         .commit();
-      if (res.ok) return true;
+      if (res.ok) {
+        await cleanupSignups(id);
+        return true;
+      }
     }
     throw new Error(
       `Failed to delete event ${id} after ${MAX_RETRIES} attempts`,

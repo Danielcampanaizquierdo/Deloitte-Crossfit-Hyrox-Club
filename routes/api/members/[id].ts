@@ -1,6 +1,9 @@
 import { Handlers } from "$fresh/server.ts";
 import { memberService } from "../../../services/memberService.ts";
-import { toPublicMember } from "../../../types/Member.ts";
+import {
+  toDirectoryMember,
+  toPublicMember,
+} from "../../../types/Member.ts";
 import { State } from "../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
@@ -11,7 +14,7 @@ export const handler: Handlers<unknown, State> = {
     if (!member || (!member.approved && !ctx.state.isAdmin)) {
       return Response.json({ error: "Member not found" }, { status: 404 });
     }
-    return Response.json(toPublicMember(member));
+    return Response.json(toDirectoryMember(member));
   },
 
   // A member may edit their own profile; an admin may edit anyone's. This

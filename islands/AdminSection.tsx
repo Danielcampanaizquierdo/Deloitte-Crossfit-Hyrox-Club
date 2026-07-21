@@ -81,8 +81,16 @@ function LoginPanel() {
         globalThis.location.reload();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast(data.error ?? "Passcode incorrecto.", "error");
-        setPasscode("");
+        // Only a 401 actually means the passcode was wrong. Defaulting to that
+        // message for every failure made a server misconfiguration look like a
+        // typo and sent admins re-entering a passcode that was correct.
+        const fallback = res.status >= 500
+          ? "Error del servidor. Revisa la configuración (SESSION_SECRET)."
+          : "Passcode incorrecto.";
+        toast(data.error ?? fallback, "error");
+        // Keep what they typed when the server is at fault; there is nothing
+        // to correct.
+        if (res.status < 500) setPasscode("");
       }
     } catch {
       toast("Error de conexión.", "error");

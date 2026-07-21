@@ -1,6 +1,6 @@
 import { Handlers } from "$fresh/server.ts";
 import { memberService } from "../../../services/memberService.ts";
-import { toPublicMembers } from "../../../types/Member.ts";
+import { toDirectoryMembers } from "../../../types/Member.ts";
 import { State } from "../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
@@ -12,7 +12,7 @@ export const handler: Handlers<unknown, State> = {
     const level = params.get("level") ?? undefined;
     const goal = params.get("goal") ?? undefined;
     return Response.json(
-      toPublicMembers(await memberService.search(search, level, goal)),
+      toDirectoryMembers(await memberService.search(search, level, goal)),
     );
   },
 

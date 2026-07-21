@@ -21,6 +21,7 @@ import {
 
 export interface PRItem {
   id: string;
+  athleteId: string;
   memberName: string;
   movement: string;
   weight: number;
@@ -78,7 +79,7 @@ export default function LeaderboardSection({ prs: initial, member }: Props) {
         // Only one PR per athlete counts on a board: their best.
         const bestPerAthlete = new Map<string, PRItem>();
         for (const entry of entries) {
-          const key = entry.memberName.trim().toLowerCase();
+          const key = entry.athleteId;
           const current = bestPerAthlete.get(key);
           if (!current) {
             bestPerAthlete.set(key, entry);
@@ -102,7 +103,7 @@ export default function LeaderboardSection({ prs: initial, member }: Props) {
       );
   }, [prs, category, search]);
 
-  const athletes = new Set(prs.map((p) => p.memberName.trim().toLowerCase()));
+  const athletes = new Set(prs.map((p) => p.athleteId));
 
   return (
     <Fragment>

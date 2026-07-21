@@ -12,11 +12,11 @@ export const handler: Handlers<unknown, State> = {
       );
     }
 
-    // The email comes from the session, never from the request. Taking it from
-    // the body meant anyone who knew a member's address could cancel their
-    // reservation.
-    const cancelled = await signupService.cancelByEmail(
+    // Ownership is the stable member id from the session. Email is used only
+    // to find bookings written before accounts carried an id.
+    const cancelled = await signupService.cancelForMember(
       ctx.params.id,
+      member.id,
       member.email,
     );
     if (!cancelled) {

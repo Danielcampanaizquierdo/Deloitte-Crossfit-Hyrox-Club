@@ -21,6 +21,10 @@ export interface Member {
  * directory. */
 export type PublicMember = Omit<Member, "passwordHash" | "passwordSalt">;
 
+/** Public club-directory shape. Contact email is available to the account
+ * owner via /api/auth/me and to admins, not to anonymous directory scrapers. */
+export type DirectoryMember = Omit<PublicMember, "email">;
+
 /** Strips credentials before a member crosses the network.
  *
  * Every route that returns member records must go through this — returning a
@@ -32,6 +36,15 @@ export function toPublicMember(member: Member): PublicMember {
 
 export function toPublicMembers(members: Member[]): PublicMember[] {
   return members.map(toPublicMember);
+}
+
+export function toDirectoryMember(member: Member): DirectoryMember {
+  const { email: _email, ...safe } = toPublicMember(member);
+  return safe;
+}
+
+export function toDirectoryMembers(members: Member[]): DirectoryMember[] {
+  return members.map(toDirectoryMember);
 }
 
 export interface CreateMemberRequest {

@@ -21,8 +21,9 @@ export const handler: Handlers<unknown, State> = {
       return Response.json({ error: "PR not found" }, { status: 404 });
     }
 
-    const isOwner = ctx.state.member?.email.toLowerCase() ===
-      pr.memberEmail.toLowerCase();
+    const isOwner = pr.memberId
+      ? ctx.state.member?.id === pr.memberId
+      : ctx.state.member?.email.toLowerCase() === pr.memberEmail.toLowerCase();
     if (!ctx.state.isAdmin && !isOwner) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }

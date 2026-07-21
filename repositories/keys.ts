@@ -83,6 +83,14 @@ export function signupMemberKey(memberId: string, id: string): Deno.KvKey {
   return ["signups_by_member", memberId, id];
 }
 
+// Signups reservation: one booking per stable member and event.
+export function signupEventMemberKey(
+  eventId: string,
+  memberId: string,
+): Deno.KvKey {
+  return ["signups_by_event_member", eventId, memberId];
+}
+
 // Signups index: ["signups_by_event_email", eventId, normalizedEmail]
 export function signupEmailKey(eventId: string, email: string): Deno.KvKey {
   return ["signups_by_event_email", eventId, normalizeEmail(email)];
@@ -125,4 +133,9 @@ export function wodScoreApprovalKey(
 // Doubles as the one-score-per-athlete-per-WOD reservation key.
 export function wodScoreEmailKey(wodId: string, email: string): Deno.KvKey {
   return ["wod_scores_by_wod_email", wodId, normalizeEmail(email)];
+}
+
+// WOD score reservation: one score per stable member and WOD.
+export function wodScoreMemberKey(wodId: string, memberId: string): Deno.KvKey {
+  return ["wod_scores_by_wod_member", wodId, memberId];
 }

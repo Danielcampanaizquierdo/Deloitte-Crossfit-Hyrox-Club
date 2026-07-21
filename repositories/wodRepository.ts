@@ -22,6 +22,7 @@ import {
   wodScoreApprovalKey,
   wodScoreEmailKey,
   wodScoreKey,
+  wodScoreMemberKey,
   wodScoreWodKey,
 } from "./keys.ts";
 
@@ -210,6 +211,9 @@ export function createWodRepository(kv: Deno.Kv): WodRepository {
           .delete(wodScoreWodKey(id, score.id))
           .delete(wodScoreApprovalKey(score.approved, score.id))
           .delete(wodScoreEmailKey(id, score.memberEmail));
+        if (score.memberId) {
+          atomic.delete(wodScoreMemberKey(id, score.memberId));
+        }
       }
 
       const res = await atomic.commit();
@@ -252,6 +256,7 @@ export function createWodRepository(kv: Deno.Kv): WodRepository {
     const score: WodScore = {
       id,
       wodId: data.wodId,
+      memberId: data.memberId,
       memberName: data.memberName,
       memberEmail: data.memberEmail,
       value: data.value,
@@ -261,6 +266,9 @@ export function createWodRepository(kv: Deno.Kv): WodRepository {
       createdAt: new Date(),
     };
     const emailKey = wodScoreEmailKey(data.wodId, data.memberEmail);
+    const memberKey = data.memberId
+      ? wodScoreMemberKey(data.wodId, data.memberId)
+      : null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const wodEntry = await kv.get<Wod>(wodKey(data.wodId));
@@ -268,17 +276,28 @@ export function createWodRepository(kv: Deno.Kv): WodRepository {
 
       const primary = await kv.get<WodScore>(wodScoreKey(id));
 
-      const res = await kv.atomic()
+      const atomic = kv.atomic()
         .check(wodEntry)
         .check(primary)
         .check({ key: emailKey, versionstamp: null })
         .set(wodScoreKey(id), score)
         .set(wodScoreWodKey(data.wodId, id), id)
         .set(wodScoreApprovalKey(false, id), id)
-        .set(emailKey, id)
-        .commit();
+        .set(emailKey, id);
+      if (memberKey) {
+        atomic
+          .check({ key: memberKey, versionstamp: null })
+          .set(memberKey, id);
+      }
+      const res = await atomic.commit();
       if (res.ok) return score;
 
+      if (memberKey) {
+        const memberIndex = await kv.get(memberKey);
+        if (memberIndex.value !== null) {
+          throw new DuplicateWodScoreError(data.wodId, data.memberEmail);
+        }
+      }
       const emailIndex = await kv.get(emailKey);
       if (emailIndex.value !== null) {
         throw new DuplicateWodScoreError(data.wodId, data.memberEmail);
@@ -318,13 +337,16 @@ export function createWodRepository(kv: Deno.Kv): WodRepository {
       if (primary.value === null) return false;
       const current = primary.value;
 
-      const res = await kv.atomic()
+      const atomic = kv.atomic()
         .check(primary)
         .delete(wodScoreKey(id))
         .delete(wodScoreWodKey(current.wodId, id))
         .delete(wodScoreApprovalKey(current.approved, id))
-        .delete(wodScoreEmailKey(current.wodId, current.memberEmail))
-        .commit();
+        .delete(wodScoreEmailKey(current.wodId, current.memberEmail));
+      if (current.memberId) {
+        atomic.delete(wodScoreMemberKey(current.wodId, current.memberId));
+      }
+      const res = await atomic.commit();
       if (res.ok) return true;
     }
     throw new Error(

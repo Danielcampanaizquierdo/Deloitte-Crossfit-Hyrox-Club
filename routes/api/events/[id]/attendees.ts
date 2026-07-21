@@ -1,9 +1,15 @@
 import { Handlers } from "$fresh/server.ts";
 import { signupService } from "../../../../services/signupService.ts";
+import { eventService } from "../../../../services/eventService.ts";
 import { State } from "../../../../types/State.ts";
 
 export const handler: Handlers<unknown, State> = {
   async GET(_req, ctx) {
+    const event = await eventService.getById(ctx.params.id);
+    if (!event || (!event.approved && !ctx.state.isAdmin)) {
+      return Response.json({ error: "Evento no encontrado" }, { status: 404 });
+    }
+
     const signups = await signupService.getByEventId(ctx.params.id);
     const ordered = signups.sort((a, b) =>
       new Date(a.signedUpAt).getTime() - new Date(b.signedUpAt).getTime()
@@ -15,7 +21,6 @@ export const handler: Handlers<unknown, State> = {
     if (!ctx.state.isAdmin) {
       return Response.json(
         ordered.map((s) => ({
-          id: s.id,
           memberName: s.memberName,
           signedUpAt: s.signedUpAt,
         })),

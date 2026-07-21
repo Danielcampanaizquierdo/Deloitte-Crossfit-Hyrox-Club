@@ -21,6 +21,7 @@ export interface MemberItem {
 }
 
 interface MemberPR {
+  athleteId: string;
   memberName: string;
   movement: string;
   weight: number;
@@ -67,7 +68,7 @@ export default function MembersSection(
   const prsByAthlete = useMemo(() => {
     const map = new Map<string, MemberPR[]>();
     for (const pr of prs) {
-      const key = pr.memberName.trim().toLowerCase();
+      const key = pr.athleteId;
       const bucket = map.get(key);
       if (bucket) bucket.push(pr);
       else map.set(key, [pr]);
@@ -175,7 +176,7 @@ export default function MembersSection(
       <div class="grid cards3">
         {filtered.map((m) => {
           const lvl = LEVELS[m.level] ?? { label: m.level, cls: "lvl-b" };
-          const count = prsByAthlete.get(m.name.trim().toLowerCase())?.length ?? 0;
+          const count = prsByAthlete.get(m.id)?.length ?? 0;
           return (
             <article
               key={m.id}
@@ -233,7 +234,7 @@ export default function MembersSection(
 
             <h4 class="profile-sub">Récords personales</h4>
             {(() => {
-              const own = prsByAthlete.get(detail.name.trim().toLowerCase()) ?? [];
+              const own = prsByAthlete.get(detail.id) ?? [];
               if (own.length === 0) {
                 return (
                   <p class="muted">

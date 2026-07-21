@@ -28,6 +28,12 @@ export const handler: Handlers<unknown, State> = {
     if (!event || !event.approved) {
       return Response.json({ error: "Evento no encontrado" }, { status: 404 });
     }
+    if (new Date(event.date).getTime() <= Date.now()) {
+      return Response.json(
+        { error: "Este evento ya ha comenzado" },
+        { status: 410 },
+      );
+    }
 
     try {
       const signup = await signupService.create({
@@ -46,6 +52,23 @@ export const handler: Handlers<unknown, State> = {
         return Response.json(
           { error: "Este evento ya está completo" },
           { status: 409 },
+        );
+      }
+      if (
+        err instanceof Error &&
+        err.message.includes("Event is not open for booking")
+      ) {
+        return Response.json(
+          { error: "El evento ya no admite reservas" },
+          { status: 409 },
+        );
+      }
+      if (
+        err instanceof Error && err.message.includes("Event has already started")
+      ) {
+        return Response.json(
+          { error: "Este evento ya ha comenzado" },
+          { status: 410 },
         );
       }
       throw err;

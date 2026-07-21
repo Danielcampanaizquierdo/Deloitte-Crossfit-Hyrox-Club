@@ -39,11 +39,14 @@ export interface UpdatePRRequest {
 }
 
 /** Public leaderboard shape. Internal attribution fields stay server-side. */
-export type PublicPR = Omit<PR, "memberId" | "memberEmail">;
+export type PublicPR = Omit<PR, "memberId" | "memberEmail"> & {
+  /** Stable public identity used to keep homonyms and renamed members apart. */
+  athleteId: string;
+};
 
 export function toPublicPR(pr: PR): PublicPR {
   const { memberId: _memberId, memberEmail: _memberEmail, ...safe } = pr;
-  return safe;
+  return { ...safe, athleteId: pr.memberId };
 }
 
 export function toPublicPRs(prs: PR[]): PublicPR[] {

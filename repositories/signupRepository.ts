@@ -25,12 +25,21 @@ import type { Event } from "../types/Event.ts";
 import {
   eventKey,
   signupEmailKey,
+  signupEventMemberKey,
   signupEventKey,
   signupKey,
   signupMemberKey,
 } from "./keys.ts";
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 20;
+
+function retryBackoff(attempt: number): Promise<void> {
+  // Event attendance is one contended record. A short capped backoff lets a
+  // burst of legitimate bookings serialize instead of failing after three
+  // immediate collisions while places are still free.
+  const delayMs = Math.min(2 ** attempt, 20);
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
 
 export class DuplicateSignupError extends Error {
   constructor(eventId: string, email: string) {
@@ -48,6 +57,20 @@ export class EventFullError extends Error {
   }
 }
 
+export class EventNotPublishedError extends Error {
+  constructor(eventId: string) {
+    super(`Event "${eventId}" is not published`);
+    this.name = "EventNotPublishedError";
+  }
+}
+
+export class EventAlreadyStartedError extends Error {
+  constructor(eventId: string) {
+    super(`Event "${eventId}" has already started`);
+    this.name = "EventAlreadyStartedError";
+  }
+}
+
 function generateId(): string {
   return `signup-${crypto.randomUUID()}`;
 }
@@ -60,6 +83,10 @@ export interface SignupRepository {
   /** Resolves the reservation key straight to its signup, so an athlete can
    * find (and cancel) their own booking with just an email. */
   getByEventEmail(eventId: string, email: string): Promise<EventSignup | null>;
+  getByEventMember(
+    eventId: string,
+    memberId: string,
+  ): Promise<EventSignup | null>;
   // Returns null when the referenced event does not exist.
   create(data: CreateSignupRequest): Promise<EventSignup | null>;
   delete(id: string): Promise<boolean>;
@@ -119,6 +146,16 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
     return record.value;
   }
 
+  async function getByEventMember(
+    eventId: string,
+    memberId: string,
+  ): Promise<EventSignup | null> {
+    const index = await kv.get<string>(signupEventMemberKey(eventId, memberId));
+    if (index.value === null) return null;
+    const record = await kv.get<EventSignup>(signupKey(index.value));
+    return record.value;
+  }
+
   async function create(
     data: CreateSignupRequest,
   ): Promise<EventSignup | null> {
@@ -134,11 +171,21 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
       signedUpAt: now,
     };
     const emailKey = signupEmailKey(data.eventId, data.memberEmail);
+    const eventMemberKey = data.memberId
+      ? signupEventMemberKey(data.eventId, data.memberId)
+      : null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const eventEntry = await kv.get<Event>(eventKey(data.eventId));
       if (eventEntry.value === null) return null;
       const event = eventEntry.value;
+
+      if (!event.approved) {
+        throw new EventNotPublishedError(data.eventId);
+      }
+      if (new Date(event.date).getTime() <= Date.now()) {
+        throw new EventAlreadyStartedError(data.eventId);
+      }
 
       // Capacity is checked against the same event entry the transaction
       // below check()s, so two bookings racing for the last spot cannot both
@@ -166,18 +213,28 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
         });
 
       if (data.memberId) {
-        atomic.set(signupMemberKey(data.memberId, id), id);
+        atomic
+          .check({ key: eventMemberKey!, versionstamp: null })
+          .set(signupMemberKey(data.memberId, id), id)
+          .set(eventMemberKey!, id);
       }
 
       const res = await atomic.commit();
       if (res.ok) return signup;
 
+      if (eventMemberKey) {
+        const memberIndex = await kv.get(eventMemberKey);
+        if (memberIndex.value !== null) {
+          throw new DuplicateSignupError(data.eventId, data.memberEmail);
+        }
+      }
       const emailIndex = await kv.get(emailKey);
       if (emailIndex.value !== null) {
         throw new DuplicateSignupError(data.eventId, data.memberEmail);
       }
       // Otherwise an unrelated conflict (e.g. a concurrent event update or
       // another signup for the same event with a different email); retry.
+      await retryBackoff(attempt);
     }
     throw new Error(
       `Failed to create signup for event ${data.eventId} after ${MAX_RETRIES} attempts`,
@@ -199,7 +256,9 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
         .delete(signupEmailKey(signup.eventId, signup.memberEmail));
 
       if (signup.memberId) {
-        atomic.delete(signupMemberKey(signup.memberId, id));
+        atomic
+          .delete(signupMemberKey(signup.memberId, id))
+          .delete(signupEventMemberKey(signup.eventId, signup.memberId));
       }
 
       // If the event has since been deleted independently, still clean up
@@ -219,6 +278,7 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
       if (res.ok) return true;
       // Reread and retry: either the signup or the event changed
       // concurrently.
+      await retryBackoff(attempt);
     }
     throw new Error(
       `Failed to delete signup ${id} after ${MAX_RETRIES} attempts`,
@@ -231,6 +291,7 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
     listByEvent,
     listByMember,
     getByEventEmail,
+    getByEventMember,
     create,
     delete: deleteSignup,
   };

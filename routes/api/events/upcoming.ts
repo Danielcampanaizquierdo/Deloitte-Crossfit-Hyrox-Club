@@ -6,7 +6,9 @@ export const handler = {
   // GET /api/events/upcoming - Get upcoming events
   async GET(_req: Request, _ctx: FreshContext) {
     try {
-      const events = await eventService.getUpcoming();
+      const events = (await eventService.getUpcoming()).filter((event) =>
+        event.approved
+      );
       return new Response(JSON.stringify(events), {
         status: 200,
         headers: { "Content-Type": "application/json" },

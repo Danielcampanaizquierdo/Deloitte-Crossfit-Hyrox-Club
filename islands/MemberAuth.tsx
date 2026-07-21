@@ -105,7 +105,10 @@ function LoginModal(
         globalThis.location.reload();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast(data.error ?? "No se pudo iniciar sesión.", "error");
+        const fallback = res.status >= 500
+          ? "Error del servidor. Avisa a un administrador."
+          : "No se pudo iniciar sesión.";
+        toast(data.error ?? fallback, "error");
       }
     } catch {
       toast("Error de conexión. Inténtalo de nuevo.", "error");

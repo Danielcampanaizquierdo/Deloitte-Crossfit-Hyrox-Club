@@ -23,7 +23,7 @@ export interface EventItem {
 }
 
 interface Attendee {
-  id: string;
+  id?: string;
   memberName: string;
   signedUpAt: string;
 }
@@ -546,7 +546,7 @@ export default function EventsSection(
           {roster.list && roster.list.length > 0 && (
             <ol class="roster">
               {roster.list.map((a) => (
-                <li key={a.id}>
+                <li key={a.id ?? `${a.memberName}-${a.signedUpAt}`}>
                   <span class="roster-avatar" aria-hidden="true">
                     {a.memberName.trim().charAt(0).toUpperCase()}
                   </span>

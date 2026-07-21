@@ -1,10 +1,18 @@
 import { Handlers } from "$fresh/server.ts";
 import { prService } from "../../../services/prService.ts";
-import { movementMetric, type PRMetric } from "../../../lib/movements.ts";
+import { MOVEMENTS, movementMetric } from "../../../lib/movements.ts";
 import { State } from "../../../types/State.ts";
 import { toPublicPR, toPublicPRs } from "../../../types/PR.ts";
 
-const METRICS: PRMetric[] = ["weight", "time", "reps"];
+function validCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    return false;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  return value >= "2000-01-01" && value <= today;
+}
 
 export const handler: Handlers<unknown, State> = {
   // Approved PRs only, optionally narrowed to one movement with ?movement=.
@@ -32,23 +40,38 @@ export const handler: Handlers<unknown, State> = {
       return Response.json({ error: "JSON inválido" }, { status: 400 });
     }
 
-    const { movement, weight, date } = body as Record<string, string>;
-    if (!movement || !weight || !date) {
+    const movement = typeof body.movement === "string"
+      ? body.movement.trim()
+      : "";
+    const date = typeof body.date === "string" ? body.date : "";
+    if (!movement || body.weight === undefined || !date) {
       return Response.json(
         { error: "Campos requeridos: movement, weight, date" },
         { status: 400 },
       );
     }
 
-    const weightNum = Number(weight);
-    if (isNaN(weightNum) || weightNum <= 0) {
-      return Response.json({ error: "weight debe ser un número positivo" }, { status: 400 });
+    const definition = MOVEMENTS.find((item) => item.name === movement);
+    if (!definition) {
+      return Response.json({ error: "Movimiento no reconocido" }, { status: 400 });
     }
 
-    const requested = body.metric as PRMetric | undefined;
-    const metric = requested && METRICS.includes(requested)
-      ? requested
-      : movementMetric(movement);
+    const weightNum = Number(body.weight);
+    if (!Number.isFinite(weightNum) || weightNum <= 0) {
+      return Response.json(
+        { error: "weight debe ser un número positivo y finito" },
+        { status: 400 },
+      );
+    }
+    if (!validCalendarDate(date)) {
+      return Response.json(
+        { error: "date debe ser una fecha válida no futura" },
+        { status: 400 },
+      );
+    }
+
+    // The catalogue, not the client, decides how a movement is ranked.
+    const metric = movementMetric(movement);
 
     // Attribution comes from the session: a PR can only be filed under the
     // logged-in member's own name.
