@@ -4,7 +4,9 @@ import { createEventRepository } from "./eventRepository.ts";
 import {
   createSignupRepository,
   DuplicateSignupError,
+  EventAlreadyStartedError,
   EventFullError,
+  EventNotPublishedError,
 } from "./signupRepository.ts";
 
 async function listKeys(
@@ -190,6 +192,91 @@ Deno.test("two athletes racing for the last spot cannot both book it", async () 
     const finalEvent = await events.get(event.id);
     // The overbooked case would show 2 here.
     assertEquals(finalEvent?.attendees, 1);
+  });
+});
+
+Deno.test("a burst of bookings succeeds while capacity remains", async () => {
+  await withKv(async (kv) => {
+    const events = createEventRepository(kv);
+    const signups = createSignupRepository(kv);
+    const event = await events.create({
+      title: "Busy launch",
+      date: futureIso(),
+      location: "Gym",
+      description: "Twenty places",
+      capacity: 20,
+    });
+    await events.update(event.id, { approved: true });
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 10 }, (_, index) =>
+        signups.create({
+          eventId: event.id,
+          memberId: `mbr-burst-${index}`,
+          memberName: `Athlete ${index}`,
+          memberEmail: `burst-${index}@example.com`,
+        })),
+    );
+
+    assertEquals(results.filter((result) => result.status === "fulfilled").length, 10);
+    assertEquals((await events.get(event.id))?.attendees, 10);
+  });
+});
+
+Deno.test("stable member id prevents a second booking after an email change", async () => {
+  await withKv(async (kv) => {
+    const events = createEventRepository(kv);
+    const signups = createSignupRepository(kv);
+    const event = await events.create({
+      title: "Stable owner",
+      date: futureIso(),
+      location: "Gym",
+      description: "Identity test",
+    });
+    await events.update(event.id, { approved: true });
+
+    await signups.create({
+      eventId: event.id,
+      memberId: "mbr-stable",
+      memberName: "Athlete",
+      memberEmail: "old@example.com",
+    });
+    await assertRejects(
+      () =>
+        signups.create({
+          eventId: event.id,
+          memberId: "mbr-stable",
+          memberName: "Athlete",
+          memberEmail: "new@example.com",
+        }),
+      DuplicateSignupError,
+    );
+  });
+});
+
+Deno.test("unpublished and past events reject bookings in the transaction", async () => {
+  await withKv(async (kv) => {
+    const events = createEventRepository(kv);
+    const signups = createSignupRepository(kv);
+    const event = await events.create({
+      title: "Closed",
+      date: futureIso(),
+      location: "Gym",
+      description: "Not open",
+    });
+    const data = {
+      eventId: event.id,
+      memberId: "mbr-closed",
+      memberName: "Athlete",
+      memberEmail: "closed@example.com",
+    };
+
+    await assertRejects(() => signups.create(data), EventNotPublishedError);
+    await events.update(event.id, {
+      approved: true,
+      date: new Date(Date.now() - 60_000).toISOString(),
+    });
+    await assertRejects(() => signups.create(data), EventAlreadyStartedError);
   });
 });
 

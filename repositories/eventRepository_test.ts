@@ -1,6 +1,7 @@
 import { assert, assertEquals } from "std/assert/mod.ts";
 import { withKv } from "./test_utils.ts";
 import { createEventRepository } from "./eventRepository.ts";
+import { createSignupRepository } from "./signupRepository.ts";
 
 Deno.test("event repository lists approved and upcoming events by indexes", async () => {
   await withKv(async (kv) => {
@@ -54,5 +55,31 @@ Deno.test("event repository removes all event indexes on delete", async () => {
     assertEquals(await repo.get(event.id), null);
     assertEquals(await repo.listApproved(), []);
     assertEquals(await repo.listUpcoming(), []);
+  });
+});
+
+Deno.test("deleting an event also removes its reservations", async () => {
+  await withKv(async (kv) => {
+    const events = createEventRepository(kv);
+    const signups = createSignupRepository(kv);
+    const event = await events.create({
+      title: "Cancelled session",
+      date: new Date(Date.now() + 86_400_000).toISOString(),
+      location: "Gym",
+      description: "Will be deleted",
+    });
+    await events.update(event.id, { approved: true });
+    const signup = await signups.create({
+      eventId: event.id,
+      memberId: "mbr-cascade",
+      memberName: "Athlete",
+      memberEmail: "cascade@example.com",
+    });
+    assert(signup);
+
+    assertEquals(await events.delete(event.id), true);
+    assertEquals(await signups.get(signup!.id), null);
+    assertEquals((await signups.listByEvent(event.id)).length, 0);
+    assertEquals((await signups.listByMember("mbr-cascade")).length, 0);
   });
 });

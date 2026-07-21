@@ -7,10 +7,23 @@ import { handler as membersIndex } from "../routes/api/members/index.ts";
 import { handler as signupsIndex } from "../routes/api/signups/index.ts";
 import { handler as memberById } from "../routes/api/members/[id].ts";
 import { handler as eventById } from "../routes/api/events/[id].ts";
-import { toPublicMember } from "../types/Member.ts";
+import { toDirectoryMember, toPublicMember } from "../types/Member.ts";
 import type { Member } from "../types/Member.ts";
+import { handler as register } from "../routes/api/auth/register.ts";
+import { handler as login } from "../routes/api/auth/login.ts";
+import { handler as logout } from "../routes/api/auth/logout.ts";
+import { handler as appMiddleware } from "../routes/_middleware.ts";
+import { memberService } from "../services/memberService.ts";
+import { verifyMemberSession } from "../lib/session.ts";
+import { handler as pendingPRs } from "../routes/api/prs/pending.ts";
+import { handler as pendingResults } from "../routes/api/results/pending.ts";
+import { toPublicPR } from "../types/PR.ts";
+import { toPublicWodScore } from "../types/Wod.ts";
+import { prService } from "../services/prService.ts";
 
 const anonymous = { params: { id: "evt-1" }, state: { isAdmin: false, member: null } };
+
+Deno.env.set("SESSION_SECRET", "test-secret-at-least-32-characters-long!!");
 
 function jsonRequest(body: unknown = {}): Request {
   return new Request("http://localhost/x", {
@@ -98,6 +111,129 @@ Deno.test("the full signup list is admin-only", async () => {
   assertEquals(res.status, 403);
 });
 
+Deno.test("all moderation queues require an admin session", async () => {
+  for (const route of [pendingPRs, pendingResults]) {
+    const res = await route.GET!(
+      new Request("http://localhost/api/pending"),
+      anonymous as never,
+    );
+    assertEquals(res.status, 403);
+  }
+});
+
+Deno.test("register, approval, login, middleware session, and logout work end to end", async () => {
+  const email = `session-${crypto.randomUUID()}@example.com`;
+  let memberId = "";
+  let prId = "";
+  try {
+    const registered = await register.POST!(
+      jsonRequest({
+        name: "Session Athlete",
+        email,
+        password: "a-strong-test-password",
+        level: "intermediate",
+        goal: "hyrox",
+        location: "Madrid",
+      }),
+      anonymous as never,
+    );
+    assertEquals(registered.status, 201);
+    const registrationBody = await registered.json();
+    memberId = registrationBody.member.id;
+    assertEquals(registrationBody.member.approved, false);
+    assertEquals("passwordHash" in registrationBody.member, false);
+
+    const pendingLogin = await login.POST!(
+      jsonRequest({ email, password: "a-strong-test-password" }),
+      anonymous as never,
+    );
+    assertEquals(pendingLogin.status, 403);
+
+    const approvedMember = await memberService.approve(memberId);
+    const loggedIn = await login.POST!(
+      jsonRequest({ email, password: "a-strong-test-password" }),
+      anonymous as never,
+    );
+    assertEquals(loggedIn.status, 200);
+    assertEquals(loggedIn.headers.get("cache-control"), "no-store");
+
+    const setCookie = loggedIn.headers.get("set-cookie")!;
+    const requestCookie = setCookie.split(";")[0];
+    assertEquals(await verifyMemberSession(requestCookie), memberId);
+
+    const middlewareContext: Record<string, unknown> = {
+      state: {},
+      next() {
+        const state = middlewareContext.state as { member: Member | null };
+        return Response.json({ memberId: state.member?.id ?? null });
+      },
+    };
+    const resolved = await appMiddleware(
+      new Request("http://localhost/", {
+        headers: { cookie: requestCookie },
+      }),
+      middlewareContext as never,
+    );
+    assertEquals((await resolved.json()).memberId, memberId);
+
+    const prResponse = await prs.POST!(
+      jsonRequest({
+        memberName: "Impostor",
+        memberEmail: "other@example.com",
+        movement: "Back Squat",
+        weight: 150,
+        metric: "time",
+        date: new Date().toISOString().slice(0, 10),
+      }),
+      {
+        params: {},
+        state: { isAdmin: false, member: approvedMember },
+      } as never,
+    );
+    assertEquals(prResponse.status, 201);
+    const prBody = await prResponse.json();
+    prId = prBody.id;
+    assertEquals(prBody.memberName, "Session Athlete");
+    assertEquals(prBody.metric, "weight");
+    assertEquals("memberEmail" in prBody, false);
+
+    const loggedOut = await logout.POST!(
+      new Request("http://localhost/api/auth/logout", { method: "POST" }),
+      anonymous as never,
+    );
+    assertEquals(loggedOut.status, 200);
+    assertEquals(loggedOut.headers.get("set-cookie")?.includes("Max-Age=0"), true);
+  } finally {
+    if (prId) await prService.delete(prId);
+    if (memberId) await memberService.delete(memberId);
+  }
+});
+
+Deno.test("PR input rejects non-finite values, unknown movements, and future dates", async () => {
+  const context = {
+    params: {},
+    state: {
+      isAdmin: false,
+      member: { id: "mbr-validation", name: "Athlete", email: "a@example.com" },
+    },
+  };
+  const today = new Date();
+  today.setUTCDate(today.getUTCDate() + 1);
+  const cases = [
+    { movement: "Deadlift", weight: "Infinity", date: "2026-01-01" },
+    { movement: "Invented Lift", weight: 100, date: "2026-01-01" },
+    {
+      movement: "Deadlift",
+      weight: 100,
+      date: today.toISOString().slice(0, 10),
+    },
+  ];
+  for (const body of cases) {
+    const response = await prs.POST!(jsonRequest(body), context as never);
+    assertEquals(response.status, 400);
+  }
+});
+
 Deno.test("editing a member requires being that member or an admin", async () => {
   const stranger = {
     params: { id: "mbr-victim" },
@@ -173,4 +309,40 @@ Deno.test("a member's credentials never leave the server", () => {
   assertEquals(serialized.includes("passwordHash"), false);
   // The fields a client legitimately needs survive.
   assertEquals(JSON.parse(serialized).name, "Athlete");
+  assertEquals("email" in toDirectoryMember(member), false);
+});
+
+Deno.test("public leaderboards omit contact details and private notes", () => {
+  const now = new Date();
+  const publicPR = toPublicPR({
+    id: "pr-1",
+    memberId: "mbr-1",
+    memberName: "Athlete",
+    memberEmail: "private@example.com",
+    movement: "Deadlift",
+    weight: 180,
+    metric: "weight",
+    date: now,
+    approved: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  assertEquals(publicPR.athleteId, "mbr-1");
+  assertEquals("memberEmail" in publicPR, false);
+  assertEquals("memberId" in publicPR, false);
+
+  const publicScore = toPublicWodScore({
+    id: "score-1",
+    wodId: "wod-1",
+    memberId: "mbr-1",
+    memberName: "Athlete",
+    memberEmail: "private@example.com",
+    value: 120,
+    scaled: false,
+    notes: "Sensitive health context",
+    approved: true,
+    createdAt: now,
+  });
+  assertEquals("memberEmail" in publicScore, false);
+  assertEquals("notes" in publicScore, false);
 });

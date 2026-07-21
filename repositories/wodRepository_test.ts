@@ -83,6 +83,34 @@ Deno.test("the duplicate score check normalizes email casing", async () => {
   });
 });
 
+Deno.test("stable member id prevents a second score after an email change", async () => {
+  await withKv(async (kv) => {
+    const repo = createWodRepository(kv);
+    const wod = await repo.create(wodData());
+
+    const first = await repo.createScore({
+      wodId: wod.id,
+      memberId: "mbr-stable-score",
+      memberName: "Athlete",
+      memberEmail: "old-score@example.com",
+      value: 201,
+    });
+    assertEquals(first?.memberId, "mbr-stable-score");
+
+    await assertRejects(
+      () =>
+        repo.createScore({
+          wodId: wod.id,
+          memberId: "mbr-stable-score",
+          memberName: "Athlete",
+          memberEmail: "new-score@example.com",
+          value: 190,
+        }),
+      DuplicateWodScoreError,
+    );
+  });
+});
+
 Deno.test("scoring a WOD that does not exist returns null", async () => {
   await withKv(async (kv) => {
     const repo = createWodRepository(kv);
