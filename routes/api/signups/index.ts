@@ -1,6 +1,6 @@
 import { FreshContext } from "$fresh/server.ts";
-import { signupService } from "../../services/signupService.ts";
-import { eventService } from "../../services/eventService.ts";
+import { signupService } from "../../../services/signupService.ts";
+import { eventService } from "../../../services/eventService.ts";
 
 export const handler = {
   // GET /api/signups - Get all signups
