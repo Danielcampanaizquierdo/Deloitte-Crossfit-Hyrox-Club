@@ -1,177 +1,443 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Deloitte CrossFit HYROX Club Hub - HTML Preview</title>
-  <link rel="preload" href="static/fonts/SairaCondensed-ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="static/styles.css">
-</head>
-<body>
-  <div class="wrap">
-    <header class="topbar">
-      <div class="brand">
-        <div class="crest"><img src="static/images/escudo.png" alt="Deloitte CrossFit & HYROX Club"></div>
-        <div><div class="eyebrow">Madrid</div><div class="brandtitle">Club Hub</div></div>
-      </div>
-      <div class="status"><span class="dot"></span> CrossFit · HYROX</div>
-    </header>
+import { Handlers, PageProps } from "$fresh/server.ts";
+import { Head } from "$fresh/runtime.ts";
+import CountdownTimer from "../islands/CountdownTimer.tsx";
+import TabNavigation from "../islands/TabNavigation.tsx";
+import EventViewToggle from "../islands/EventViewToggle.tsx";
+import ModalManager from "../islands/ModalManager.tsx";
+import AdminPanel from "../islands/AdminPanel.tsx";
+import AdminPendingPanel from "../islands/AdminPendingPanel.tsx";
+import MembersFilter from "../islands/MembersFilter.tsx";
+import Calendar from "../islands/Calendar.tsx";
+import SignupForm from "../islands/SignupForm.tsx";
+import PRForm from "../islands/PRForm.tsx";
+import MemberForm from "../islands/MemberForm.tsx";
+import EventForm from "../islands/EventForm.tsx";
+import ResultForm from "../islands/ResultForm.tsx";
+import Topbar from "../components/Topbar.tsx";
+import Hero from "../components/Hero.tsx";
+import Footer from "../components/Footer.tsx";
+import { eventService } from "../services/eventService.ts";
+import { memberService } from "../services/memberService.ts";
+import { prService } from "../services/prService.ts";
+import { resultService } from "../services/resultService.ts";
+import { State } from "../types/State.ts";
 
-    <section class="hero">
-      <div>
-        <div class="pill"><strong>●</strong> Deloitte CrossFit & HYROX Club</div>
-        <h1>Train hard.<br>Progress <span>together.</span></h1>
-        <p>The central point for the club: upcoming events, sign-ups, member profiles, PRs, past competitions and admin moderation.</p>
-        <div class="actions">
-          <button class="btn green" onclick="openModal('signupModal')">Apuntarme</button>
-          <button class="btn dark" onclick="openModal('memberModal')">Crear perfil</button>
-        </div>
-      </div>
-      <aside class="hero-card">
-        <div class="wordmark">
-          <img src="static/images/letras.png" alt="Deloitte CrossFit HYROX Club">
-        </div>
-        <div class="eyebrow" style="margin-bottom:10px">Próximo evento</div>
-        <h2 style="font-family:var(--font-display);letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px;font-size:32px">Entreno DEKA</h2>
-        <div class="countdown" data-countdown="2026-07-12T10:00:00"></div>
-      </aside>
-    </section>
+interface EventData {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  description: string;
+  attendees: number;
+}
 
-    <nav class="nav">
-      <button class="tab active" data-tab="events">Eventos</button>
-      <button class="tab" data-tab="leaderboard">Leaderboard</button>
-      <button class="tab" data-tab="results">Resultados</button>
-      <button class="tab" data-tab="members">Members</button>
-      <button class="tab" data-tab="admin">Admin</button>
-    </nav>
+interface PREntry {
+  id: string;
+  memberName: string;
+  weight: number;
+}
 
-    <section id="events" class="content active">
-      <div class="section-head">
-        <h2>Lo que se viene</h2>
-        <div class="tools">
-          <button class="btn green" style="padding:10px 13px" onclick="showEventView('cards')">Cards</button>
-          <button class="btn dark" style="padding:10px 13px" onclick="showEventView('calendar')">Calendar</button>
-          <button class="btn dark" style="padding:10px 13px" onclick="openModal('eventModal')">+ Añadir evento</button>
-        </div>
-      </div>
-      <div id="eventCards" class="grid cards2">
-        <article class="card">
-          <div class="imgph">Event image upload</div>
-          <div class="card-body">
-            <div style="display:flex;justify-content:space-between;gap:14px"><h3>Entreno DEKA</h3><span class="badge">8 apuntados</span></div>
-            <div class="meta">📅 12 Jul 2026 · 10:00<br>📍 GreenHorse Box, San Sebastián de los Reyes</div>
-            <div class="mini-count countdown" data-countdown="2026-07-12T10:00:00"></div>
-            <p class="muted">Formato DEKA para preparar competición, compartir ritmos y representar al club juntos.</p>
-            <div class="actions"><button class="btn green" onclick="openModal('signupModal')">Apúntate</button><button class="btn red admin-only hidden">Delete</button></div>
-          </div>
-        </article>
-        <article class="card">
-          <div class="imgph">Training session</div>
-          <div class="card-body">
-            <div style="display:flex;justify-content:space-between;gap:14px"><h3>HYROX Team Session</h3><span class="badge">12 apuntados</span></div>
-            <div class="meta">📅 19 Jul 2026 · 09:30<br>📍 Madrid</div>
-            <div class="mini-count countdown" data-countdown="2026-07-19T09:30:00"></div>
-            <p class="muted">Team workout focused on sleds, wall balls and running transitions.</p>
-            <div class="actions"><button class="btn green" onclick="openModal('signupModal')">Apúntate</button><button class="btn red admin-only hidden">Delete</button></div>
-          </div>
-        </article>
-      </div>
-      <div id="eventCalendar" class="calendar hidden">
-        <div class="cal-head"><button class="btn dark" style="padding:8px 12px">Prev</button><h3>Julio 2026</h3><button class="btn dark" style="padding:8px 12px">Next</button></div>
-        <div class="cal-grid" id="calendarGrid"></div>
-      </div>
-    </section>
+interface PRGroup {
+  movement: string;
+  top: PREntry[];
+}
 
-    <section id="leaderboard" class="content">
-      <div class="section-head"><h2>PRs del club</h2><button class="btn dark" onclick="openModal('prModal')">+ Añadir PR</button></div>
-      <div class="grid cards2">
-        <article class="card leader-card"><h3>Clean & Jerk</h3><div class="row"><div class="rank">#1</div><div><b>Member A</b><div class="bar"><div class="fill" style="width:92%"></div></div></div><div class="kg">105kg</div></div><div class="row"><div class="rank">#2</div><div><b>Member B</b><div class="bar"><div class="fill" style="width:78%"></div></div></div><div class="kg">90kg</div></div></article>
-        <article class="card leader-card"><h3>Snatch</h3><div class="row"><div class="rank">#1</div><div><b>Member A</b><div class="bar"><div class="fill" style="width:88%"></div></div></div><div class="kg">78kg</div></div><div class="row"><div class="rank">#2</div><div><b>Member C</b><div class="bar"><div class="fill" style="width:74%"></div></div></div><div class="kg">65kg</div></div></article>
-      </div>
-    </section>
+interface ResultData {
+  id: string;
+  name: string;
+  date: string;
+  description: string;
+  photoUrl?: string;
+}
 
-    <section id="results" class="content">
-      <div class="section-head"><h2>Nuestras batallas</h2><button class="btn dark" onclick="openModal('resultModal')">+ Añadir resultado</button></div>
-      <div class="grid cards3">
-        <article class="card"><div class="imgph">Past event photo</div><div class="card-body"><h3>HYROX Madrid</h3><div class="eyebrow">20 Jun 2026</div><p class="muted">Great team performance, strong finish and several PRs.</p><p class="notice">Participants: Member A, Member B, Member C</p><button class="btn red admin-only hidden">Delete</button></div></article>
-        <article class="card"><div class="imgph">Finish line</div><div class="card-body"><h3>DEKA Event</h3><div class="eyebrow">10 May 2026</div><p class="muted">Internal challenge with strong turnout and team support.</p><p class="notice">Participants: Member D, Member E</p><button class="btn red admin-only hidden">Delete</button></div></article>
-        <article class="card"><div class="imgph">Team photo</div><div class="card-body"><h3>Box Throwdown</h3><div class="eyebrow">28 Apr 2026</div><p class="muted">Friendly competition focused on strength and engine.</p><p class="notice">Participants: Member F, Member G</p><button class="btn red admin-only hidden">Delete</button></div></article>
-      </div>
-    </section>
+interface MemberData {
+  id: string;
+  name: string;
+  level: string;
+  goal: string;
+  location: string;
+}
 
-    <section id="members" class="content">
-      <div class="section-head"><h2>Member profiles</h2><button class="btn dark" onclick="openModal('memberModal')">+ Añadir miembro</button></div>
-      <div class="filters"><input class="input" placeholder="Search member, goal, location..."><select class="input"><option>All levels</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>Competition</option></select><select class="input"><option>All focus</option><option>HYROX</option><option>CrossFit</option><option>DEKA</option></select></div>
-      <div class="stats"><div class="stat"><small>Members</small><b>24</b></div><div class="stat"><small>Competitors</small><b>8</b></div><div class="stat"><small>HYROX focus</small><b>15</b></div></div>
-      <div class="grid cards3">
-        <article class="card"><div class="card-body"><div class="member-head"><div class="avatar">DA</div><div><h3>Demo Athlete</h3><div class="meta">📍 Madrid</div></div></div><div style="margin-top:14px"><span class="badge">Intermediate</span> <span class="badge">HYROX</span></div><div class="prgrid"><div class="pr"><small>Clean & Jerk</small><b>90kg</b></div><div class="pr"><small>Snatch</small><b>70kg</b></div><div class="pr"><small>HYROX</small><b>1:18</b></div></div><p class="muted">Entrena para mejorar consistencia y competir en equipo.</p><button class="btn dark" onclick="openModal('profileModal')">Ver perfil</button> <button class="btn red admin-only hidden">Delete</button></div></article>
-        <article class="card"><div class="card-body"><div class="member-head"><div class="avatar">MB</div><div><h3>Member B</h3><div class="meta">📍 Madrid</div></div></div><div style="margin-top:14px"><span class="badge">Competition</span> <span class="badge">CrossFit</span></div><div class="prgrid"><div class="pr"><small>Clean & Jerk</small><b>110kg</b></div><div class="pr"><small>Snatch</small><b>85kg</b></div><div class="pr"><small>HYROX</small><b>1:10</b></div></div><p class="muted">Focused on strength and race-day consistency.</p><button class="btn dark" onclick="openModal('profileModal')">Ver perfil</button> <button class="btn red admin-only hidden">Delete</button></div></article>
-      </div>
-    </section>
+interface PendingMemberData {
+  id: string;
+  name: string;
+  email: string;
+  level: string;
+  goal: string;
+}
 
-    <section id="admin" class="content">
-      <div id="adminLocked" class="admin-box">
-        <h2 style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;margin-top:0">Admin access</h2>
-        <p class="muted">Prototype moderation area. Use passcode <b>ClubAdmin2026</b>.</p>
-        <div class="form" style="max-width:520px"><input id="pass" class="input" type="password" placeholder="Admin passcode"><button class="btn green" onclick="unlockAdmin()">Unlock admin tools</button></div>
-      </div>
-      <div id="adminOpen" class="hidden">
-        <div class="admin-box"><div class="section-head"><div><h2 style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:.1em;margin:0">Moderation tools</h2><p class="muted">Approve/reject pending submissions and delete public content.</p></div><button class="btn dark" onclick="lockAdmin()">Lock</button></div></div>
-        <div class="grid cards2" style="margin-top:16px">
-          <div class="pending"><h3>Pending events <span class="badge">2 pending</span></h3><div class="pending-item"><b>Open training session</b><br><span class="muted">Submitted by club member</span><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
-          <div class="pending"><h3>Pending PRs <span class="badge">4 pending</span></h3><div class="pending-item"><b>Member A · Clean & Jerk · 90kg</b><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
-          <div class="pending"><h3>Pending results <span class="badge">1 pending</span></h3><div class="pending-item"><b>HYROX Madrid</b><br><span class="muted">Includes uploaded photo</span><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
-          <div class="pending"><h3>Pending members <span class="badge">3 pending</span></h3><div class="pending-item"><b>New Member · Intermediate · HYROX</b><div class="actions"><button class="btn green">Approve</button><button class="btn red">Reject</button></div></div></div>
-        </div>
-      </div>
-    </section>
+interface PendingPRData {
+  id: string;
+  memberName: string;
+  memberEmail: string;
+  movement: string;
+  weight: number;
+}
 
-    <div class="footer">Deloitte CrossFit HYROX Club · Madrid · Train hard. Progress together.</div>
-  </div>
+interface PendingEventData {
+  id: string;
+  title: string;
+  date: string;
+}
 
-  <div id="signupModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Apuntarse a evento</h3><button class="close" onclick="closeModal('signupModal')">×</button></div><div class="form"><input class="input" placeholder="Tu nombre"><textarea class="input" placeholder="Nota opcional"></textarea><button class="btn green" onclick="closeModal('signupModal')">Confirmar inscripción</button></div></div></div>
-  <div id="eventModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Añadir evento</h3><button class="close" onclick="closeModal('eventModal')">×</button></div><div class="form"><input class="input" placeholder="Título"><input class="input" type="datetime-local"><input class="input" placeholder="Lugar"><textarea class="input" placeholder="Descripción"></textarea><input class="input" type="file" accept="image/*"><p class="notice">In the real web, non-admin submissions go to Admin Review before publishing.</p><button class="btn green" onclick="closeModal('eventModal')">Enviar a revisión</button></div></div></div>
-  <div id="prModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Añadir PR</h3><button class="close" onclick="closeModal('prModal')">×</button></div><div class="form"><input class="input" placeholder="Nombre"><select class="input"><option>Clean & Jerk</option><option>Snatch</option><option>Back Squat</option><option>Deadlift</option></select><input class="input" type="number" placeholder="Peso en kg"><button class="btn green" onclick="closeModal('prModal')">Enviar a revisión</button></div></div></div>
-  <div id="resultModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Añadir resultado</h3><button class="close" onclick="closeModal('resultModal')">×</button></div><div class="form"><input class="input" placeholder="Competición / evento"><input class="input" type="date"><input class="input" type="file" accept="image/*"><textarea class="input" placeholder="Resultado, posición, tiempo, highlights..."></textarea><input class="input" placeholder="Participantes"><button class="btn green" onclick="closeModal('resultModal')">Enviar a revisión</button></div></div></div>
-  <div id="memberModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Crear perfil</h3><button class="close" onclick="closeModal('memberModal')">×</button></div><div class="form"><input class="input" placeholder="Nombre"><select class="input"><option>Madrid</option><option>Barcelona</option><option>Remote</option></select><select class="input"><option>Intermediate</option><option>Beginner</option><option>Advanced</option><option>Competition</option></select><div class="notice">Focus: CrossFit · HYROX · DEKA · Weightlifting · Endurance</div><input class="input" placeholder="Clean & Jerk PR, e.g. 90kg"><input class="input" placeholder="Snatch PR, e.g. 70kg"><input class="input" placeholder="HYROX time, e.g. 1:18"><textarea class="input" placeholder="Short bio"></textarea><textarea class="input" placeholder="Next goal"></textarea><input class="input" type="file" accept="image/*"><button class="btn green" onclick="closeModal('memberModal')">Enviar a revisión</button></div></div></div>
-  <div id="profileModal" class="modal-back"><div class="modal"><div class="modal-head"><h3>Demo Athlete</h3><button class="close" onclick="closeModal('profileModal')">×</button></div><div class="actions"><span class="badge">Intermediate</span><span class="badge">HYROX</span><span class="badge">CrossFit</span></div><div class="prgrid" style="margin:18px 0"><div class="pr"><small>Clean & Jerk</small><b>90kg</b></div><div class="pr"><small>Snatch</small><b>70kg</b></div><div class="pr"><small>HYROX</small><b>1:18</b></div></div><h4 class="eyebrow">Bio</h4><p class="muted">Entrena para mejorar consistencia, competir en equipo y sumar puntos para el club.</p><h4 class="eyebrow">Next goal</h4><p class="muted">Bajar tiempo HYROX y mejorar Clean & Jerk / Snatch.</p></div></div>
+interface PendingResultData {
+  id: string;
+  name: string;
+  date: string;
+}
 
-  <script>
-    const $ = (s, root=document) => root.querySelector(s);
-    const $$ = (s, root=document) => [...root.querySelectorAll(s)];
-    $$('.tab').forEach(btn => btn.addEventListener('click', () => {
-      $$('.tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      $$('.content').forEach(c => c.classList.remove('active'));
-      $('#' + btn.dataset.tab).classList.add('active');
-    }));
-    function openModal(id){document.getElementById(id).style.display='flex'}
-    function closeModal(id){document.getElementById(id).style.display='none'}
-    function showEventView(view){$('#eventCards').classList.toggle('hidden',view!=='cards');$('#eventCalendar').classList.toggle('hidden',view!=='calendar')}
-    function unlockAdmin(){ if($('#pass').value==='ClubAdmin2026'){ $('#adminLocked').classList.add('hidden'); $('#adminOpen').classList.remove('hidden'); $$('.admin-only').forEach(x=>x.classList.remove('hidden')); } else alert('Incorrect passcode'); }
-    function lockAdmin(){ $('#adminLocked').classList.remove('hidden'); $('#adminOpen').classList.add('hidden'); $$('.admin-only').forEach(x=>x.classList.add('hidden')); }
-    function renderCountdowns(){
-      $$('.countdown').forEach(el=>{
-        const target = new Date(el.dataset.countdown || '2026-07-12T10:00:00').getTime();
-        const diff = target - Date.now();
-        if(diff<=0){el.innerHTML='<div class="badge">En juego</div>';return}
-        const vals=[Math.floor(diff/86400000),Math.floor(diff%86400000/3600000),Math.floor(diff%3600000/60000),Math.floor(diff%60000/1000)];
-        const labels=['D','H','M','S'];
-        el.innerHTML=vals.map((v,i)=>`<div class="timebox"><b>${String(v).padStart(2,'0')}</b><small>${labels[i]}</small></div>`).join('');
-      })
+interface PageData {
+  isAdmin: boolean;
+  events: EventData[];
+  prGroups: PRGroup[];
+  results: ResultData[];
+  members: MemberData[];
+  memberStats: { total: number; hyrox: number; competitors: number };
+  pendingMembers: PendingMemberData[];
+  pendingPRs: PendingPRData[];
+  pendingEvents: PendingEventData[];
+  pendingResults: PendingResultData[];
+}
+
+export const handler: Handlers<PageData, State> = {
+  async GET(_req, ctx) {
+    const [allMembers, allPRs, allEvents, allResults] = await Promise.all([
+      memberService.getAll(),
+      prService.getAll(),
+      eventService.getAll(),
+      resultService.getAll(),
+    ]);
+
+    const toStr = (d: unknown) =>
+      d instanceof Date ? d.toISOString() : String(d);
+
+    const approvedEvents: EventData[] = allEvents
+      .filter((e) => e.approved)
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        date: toStr(e.date),
+        location: e.location,
+        description: e.description,
+        attendees: e.attendees,
+      }));
+
+    const approvedPRs = allPRs.filter((p) => p.approved);
+    const grouped: Record<string, PREntry[]> = {};
+    for (const pr of approvedPRs) {
+      if (!grouped[pr.movement]) grouped[pr.movement] = [];
+      grouped[pr.movement].push({ id: pr.id, memberName: pr.memberName, weight: pr.weight });
     }
-    setInterval(renderCountdowns,1000); renderCountdowns();
-    function buildCalendar(){
-      const grid=$('#calendarGrid'); if(!grid)return;
-      ['L','M','X','J','V','S','D'].forEach(d=>grid.insertAdjacentHTML('beforeend',`<div class="cal-label">${d}</div>`));
-      const firstOffset=2; const days=31;
-      for(let i=0;i<firstOffset;i++) grid.insertAdjacentHTML('beforeend','<div class="cal-cell empty"></div>');
-      for(let d=1;d<=days;d++){
-        const events=[]; if(d===12)events.push('Entreno DEKA'); if(d===19)events.push('HYROX Team');
-        grid.insertAdjacentHTML('beforeend',`<div class="cal-cell"><div class="day">${d}</div>${events.map(e=>`<button class="event-chip" onclick="openModal('signupModal')">${e}</button>`).join('')}</div>`)
-      }
-    }
-    buildCalendar();
-  </script>
-</body>
-</html>
+    const prGroups: PRGroup[] = Object.entries(grouped)
+      .map(([movement, entries]) => ({
+        movement,
+        top: entries.sort((a, b) => b.weight - a.weight).slice(0, 3),
+      }))
+      .slice(0, 4);
+
+    const approvedResults: ResultData[] = allResults
+      .filter((r) => r.approved)
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        date: toStr(r.date),
+        description: r.description,
+        photoUrl: r.photoUrl,
+      }));
+
+    const approvedMembers: MemberData[] = allMembers
+      .filter((m) => m.approved)
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        level: m.level,
+        goal: m.goal,
+        location: m.location,
+      }));
+
+    const memberStats = {
+      total: approvedMembers.length,
+      hyrox: approvedMembers.filter((m) => m.goal === "hyrox").length,
+      competitors: approvedMembers.filter((m) => m.level === "advanced").length,
+    };
+
+    const pendingMembers: PendingMemberData[] = allMembers
+      .filter((m) => !m.approved)
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        level: m.level,
+        goal: m.goal,
+      }));
+
+    const pendingPRs: PendingPRData[] = allPRs
+      .filter((p) => !p.approved)
+      .map((p) => ({
+        id: p.id,
+        memberName: p.memberName,
+        memberEmail: p.memberEmail,
+        movement: p.movement,
+        weight: p.weight,
+      }));
+
+    const pendingEvents: PendingEventData[] = allEvents
+      .filter((e) => !e.approved)
+      .map((e) => ({ id: e.id, title: e.title, date: toStr(e.date) }));
+
+    const pendingResults: PendingResultData[] = allResults
+      .filter((r) => !r.approved)
+      .map((r) => ({ id: r.id, name: r.name, date: toStr(r.date) }));
+
+    return ctx.render({
+      isAdmin: ctx.state.isAdmin,
+      events: approvedEvents,
+      prGroups,
+      results: approvedResults,
+      members: approvedMembers,
+      memberStats,
+      pendingMembers,
+      pendingPRs,
+      pendingEvents,
+      pendingResults,
+    });
+  },
+};
+
+export default function Home({ data }: PageProps<PageData>) {
+  const { isAdmin, events, prGroups, results, members, memberStats } = data;
+
+  return (
+    <>
+      <Head>
+        <link
+          rel="preload"
+          href="/fonts/SairaCondensed-ExtraBold.woff2"
+          as="font"
+          type="font/woff2"
+          crossorigin
+        />
+        <link rel="stylesheet" href="/styles.css" />
+      </Head>
+      <div class="wrap">
+        <Topbar />
+        <Hero />
+        <TabNavigation />
+
+        {/* ── Events ── */}
+        <section id="events" class="content active">
+          <div class="section-head">
+            <h2>Lo que se viene</h2>
+            <div style="display:flex;gap:8px;align-items:center">
+              {isAdmin && (
+                <ModalManager
+                  buttonLabel="+ Añadir evento"
+                  modalId="eventModal"
+                  buttonClass="btn dark"
+                />
+              )}
+              <EventViewToggle />
+            </div>
+          </div>
+
+          <div id="eventCards" class="grid cards2">
+            {events.length === 0 && (
+              <p class="muted">No hay eventos próximos. ¡Vuelve pronto!</p>
+            )}
+            {events.map((ev) => (
+              <article key={ev.id} class="card">
+                <div class="imgph">Event image</div>
+                <div class="card-body">
+                  <div style="display:flex;justify-content:space-between;gap:14px">
+                    <h3>{ev.title}</h3>
+                    <span class="badge">{ev.attendees} apuntados</span>
+                  </div>
+                  <div class="meta">
+                    📅 {new Date(ev.date).toLocaleString("es-ES", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {ev.location && (
+                      <>
+                        <br />
+                        📍 {ev.location}
+                      </>
+                    )}
+                  </div>
+                  <CountdownTimer targetDate={ev.date} className="mini-count" />
+                  <p class="muted">{ev.description}</p>
+                  <div class="actions">
+                    <ModalManager
+                      buttonLabel="Apúntate"
+                      modalId="signupModal"
+                      buttonClass="btn green"
+                    />
+                    {isAdmin && (
+                      <form
+                        method="POST"
+                        action={`/api/events/${ev.id}/delete`}
+                        style="margin:0"
+                      >
+                        <button type="submit" class="btn red">
+                          Delete
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <Calendar events={events.map((e) => ({ id: e.id, title: e.title, date: e.date }))} />
+        </section>
+
+        {/* ── Leaderboard ── */}
+        <section id="leaderboard" class="content">
+          <div class="section-head">
+            <h2>PRs del club</h2>
+            <ModalManager
+              buttonLabel="+ Añadir PR"
+              modalId="prModal"
+              buttonClass="btn dark"
+            />
+          </div>
+
+          <div class="grid cards2">
+            {prGroups.length === 0 && (
+              <p class="muted">
+                No hay PRs aprobados aún. ¡Sé el primero en registrar el tuyo!
+              </p>
+            )}
+            {prGroups.map(({ movement, top }) => (
+              <article key={movement} class="card leader-card">
+                <div class="card-body">
+                  <h3>{movement}</h3>
+                  {top.map((entry, i) => (
+                    <div key={entry.id} class="row">
+                      <div class="rank">#{i + 1}</div>
+                      <div>
+                        <b>{entry.memberName}</b>
+                        <div class="bar">
+                          <div
+                            class="fill"
+                            style={`width:${Math.round((entry.weight / top[0].weight) * 100)}%`}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <b>{entry.weight}kg</b>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Results ── */}
+        <section id="results" class="content">
+          <div class="section-head">
+            <h2>Nuestras batallas</h2>
+            {isAdmin && (
+              <ModalManager
+                buttonLabel="+ Añadir resultado"
+                modalId="resultModal"
+                buttonClass="btn dark"
+              />
+            )}
+          </div>
+
+          <div class="grid cards3">
+            {results.length === 0 && (
+              <p class="muted">No hay resultados publicados aún.</p>
+            )}
+            {results.map((r) => (
+              <article key={r.id} class="card">
+                {r.photoUrl
+                  ? (
+                    <img
+                      src={r.photoUrl}
+                      alt={r.name}
+                      style="width:100%;height:160px;object-fit:cover;border-bottom:1px solid var(--line)"
+                    />
+                  )
+                  : <div class="imgph">Past event photo</div>}
+                <div class="card-body">
+                  <h3>{r.name}</h3>
+                  <div class="eyebrow">
+                    {new Date(r.date).toLocaleDateString("es-ES", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </div>
+                  <p class="muted">{r.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Members ── */}
+        <section id="members" class="content">
+          <div class="section-head">
+            <h2>Member profiles</h2>
+            <ModalManager
+              buttonLabel="+ Añadir miembro"
+              modalId="memberModal"
+              buttonClass="btn dark"
+            />
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <small>Members</small>
+              <b>{memberStats.total}</b>
+            </div>
+            <div class="stat">
+              <small>Competitors</small>
+              <b>{memberStats.competitors}</b>
+            </div>
+            <div class="stat">
+              <small>HYROX focus</small>
+              <b>{memberStats.hyrox}</b>
+            </div>
+            <div class="stat">
+              <small>Pending approval</small>
+              <b>{data.pendingMembers.length}</b>
+            </div>
+          </div>
+
+          <MembersFilter members={members} />
+        </section>
+
+        {/* ── Admin ── */}
+        <section id="admin" class="content">
+          <AdminPanel isAdmin={isAdmin} />
+          {isAdmin && (
+            <AdminPendingPanel
+              members={data.pendingMembers}
+              prs={data.pendingPRs}
+              events={data.pendingEvents}
+              results={data.pendingResults}
+            />
+          )}
+        </section>
+
+        <Footer />
+      </div>
+
+      {/* ── Modal islands ── */}
+      <SignupForm events={events.map((e) => ({ id: e.id, title: e.title, date: e.date }))} />
+      <PRForm />
+      <MemberForm />
+      {isAdmin && <EventForm />}
+      {isAdmin && <ResultForm />}
+    </>
+  );
+}
