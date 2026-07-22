@@ -1,0 +1,11 @@
+[    3096ms] [WARNING] The resource http://localhost:8000/fonts/SairaCondensed-ExtraBold.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:8000/:0
+[  294819ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  312085ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  331397ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  343862ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  373338ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  375826ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  378357ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  380964ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  383599ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
+[  386309ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/_frsh/fresh_dev_client.js:0
