@@ -4,6 +4,7 @@ import { Fragment, h } from "preact";
 import { useMemo, useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
 import { emit, OPEN_JOIN } from "../lib/bus.ts";
+import { toast } from "../lib/toast.ts";
 import {
   formatCalendarDate,
   formatPRValue,
@@ -33,6 +34,8 @@ interface Props {
   members: MemberItem[];
   prs: MemberPR[];
   pendingCount: number;
+  sessionMember?: { id: string } | null;
+  isAdmin?: boolean;
 }
 
 const LEVELS: Record<string, { label: string; cls: string }> = {
@@ -58,8 +61,9 @@ function initials(name: string): string {
 }
 
 export default function MembersSection(
-  { members, prs, pendingCount }: Props,
+  { members: initialMembers, prs, pendingCount, sessionMember, isAdmin }: Props,
 ) {
+  const [members, setMembers] = useState(initialMembers);
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState("all");
   const [goal, setGoal] = useState("all");
@@ -87,6 +91,23 @@ export default function MembersSection(
       (goal === "all" || m.goal === goal);
   });
 
+  const deleteMember = async (m: MemberItem) => {
+    if (!confirm(`¿Eliminar la cuenta de ${m.name}? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await fetch(`/api/members/${m.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setMembers((list) => list.filter((x) => x.id !== m.id));
+        if (detail?.id === m.id) setDetail(null);
+        toast(`Cuenta de ${m.name} eliminada.`, "success");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast(data.error ?? "No se pudo eliminar la cuenta.", "error");
+      }
+    } catch {
+      toast("Error de conexión.", "error");
+    }
+  };
+
   const stats = [
     { label: "Miembros", value: members.length },
     {
@@ -97,7 +118,7 @@ export default function MembersSection(
       label: "Foco HYROX",
       value: members.filter((m) => m.goal === "hyrox").length,
     },
-    { label: "Pendientes", value: pendingCount },
+    ...(isAdmin ? [{ label: "Pendientes", value: pendingCount }] : []),
   ];
 
   return (
@@ -110,9 +131,11 @@ export default function MembersSection(
             club
           </p>
         </div>
-        <button type="button" class="btn green" onClick={() => emit(OPEN_JOIN)}>
-          + Crear cuenta
-        </button>
+        {!sessionMember && (
+          <button type="button" class="btn green" onClick={() => emit(OPEN_JOIN)}>
+            + Crear cuenta
+          </button>
+        )}
       </div>
 
       <div class="stats">
@@ -208,6 +231,16 @@ export default function MembersSection(
                   <span>{count} {count === 1 ? "PR" : "PRs"}</span>
                   <span class="link-like">Ver perfil →</span>
                 </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    class="btn red btn-sm"
+                    style="margin-top:10px;width:100%"
+                    onClick={(e) => { e.stopPropagation(); deleteMember(m); }}
+                  >
+                    Eliminar cuenta
+                  </button>
+                )}
               </div>
             </article>
           );

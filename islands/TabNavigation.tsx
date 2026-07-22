@@ -12,6 +12,7 @@ interface Tab {
 
 interface Props {
   pendingCount?: number;
+  isAdmin?: boolean;
 }
 
 const TABS: Tab[] = [
@@ -35,7 +36,7 @@ function showSection(id: string) {
   }
 }
 
-export default function TabNavigation({ pendingCount = 0 }: Props) {
+export default function TabNavigation({ pendingCount = 0, isAdmin = false }: Props) {
   const [active, setActive] = useState(TABS[0].id);
   // Server-rendered to start, then kept in step with the moderation queues,
   // which live in another island.
@@ -70,7 +71,7 @@ export default function TabNavigation({ pendingCount = 0 }: Props) {
 
   return (
     <nav class="nav" aria-label="Secciones del club">
-      {TABS.map((tab) => {
+      {TABS.filter((tab) => tab.id !== "admin" || isAdmin).map((tab) => {
         const badge = tab.id === "admin" ? pending : 0;
         return (
           <button

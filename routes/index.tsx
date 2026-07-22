@@ -283,7 +283,7 @@ export default function Home({ data }: PageProps<PageData>) {
           eventCount={events.length}
           prCount={prs.length}
         />
-        <TabNavigation pendingCount={pendingCount} />
+        <TabNavigation pendingCount={pendingCount} isAdmin={isAdmin} />
 
         <section id="events" class="content active">
           <EventsSection
@@ -359,6 +359,8 @@ export default function Home({ data }: PageProps<PageData>) {
             members={members}
             prs={prs}
             pendingCount={pendingMembers.length}
+            sessionMember={sessionMember}
+            isAdmin={isAdmin}
           />
         </section>
 
