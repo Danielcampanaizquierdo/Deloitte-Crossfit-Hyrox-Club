@@ -25,6 +25,19 @@ export function localDateTimeToIso(value: string): string | null {
   return parsed.toISOString();
 }
 
+/** Inverse of localDateTimeToIso: turns a stored UTC instant into the
+ * `YYYY-MM-DDTHH:mm` wall-clock string a `<input type="datetime-local">`
+ * expects, in the viewer's own timezone. Used to prefill the edit form so an
+ * event scheduled for 10:00 in Madrid shows 10:00, not the UTC value. */
+export function isoToLocalDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${
+    pad(d.getHours())
+  }:${pad(d.getMinutes())}`;
+}
+
 /** Formats a calendar-date value (a PR, WOD or result date) as the day that
  * was actually entered.
  *

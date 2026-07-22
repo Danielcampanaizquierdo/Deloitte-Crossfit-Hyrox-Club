@@ -26,6 +26,25 @@ export const handler: Handlers<unknown, State> = {
       return Response.json({ error: "JSON inválido" }, { status: 400 });
     }
 
+    // The cover photo travels inline as a compressed data URI; guard its size
+    // and shape before it reaches KV (64 KiB per value). An empty string is a
+    // deliberate "remove the photo".
+    const image = body.image;
+    if (typeof image === "string" && image !== "") {
+      if (!image.startsWith("data:image/")) {
+        return Response.json(
+          { error: "La foto no tiene un formato válido." },
+          { status: 400 },
+        );
+      }
+      if (image.length > 60_000) {
+        return Response.json(
+          { error: "La foto es demasiado grande. Prueba con una más ligera." },
+          { status: 400 },
+        );
+      }
+    }
+
     // Whitelisted so a request cannot rewrite the attendee counter, which the
     // signup transaction owns.
     const allowed: Record<string, unknown> = {};
@@ -34,6 +53,8 @@ export const handler: Handlers<unknown, State> = {
         "title",
         "date",
         "location",
+        "locationUrl",
+        "image",
         "description",
         "type",
         "capacity",

@@ -196,6 +196,8 @@ button,input,textarea,select{font-family:inherit}
 
 .content{display:none}
 .content.active{display:block}
+/* While a modal is open, lift the active section above the sticky nav (z-index:20) so the nav can't paint over the dialog. */
+body.modal-open .content.active{position:relative;z-index:30}
 
 /* ── Section headers ────────────────────────────────────────────────── */
 .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}

@@ -5,6 +5,8 @@ import { useEffect, useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
 import Countdown from "../components/Countdown.tsx";
 import { toast } from "../lib/toast.ts";
+import { compressImage } from "../lib/imageCompress.ts";
+import { isoToLocalDateTime, localDateTimeToIso } from "../lib/movements.ts";
 import { emit, on, OPEN_BOOKING, OPEN_LOGIN } from "../lib/bus.ts";
 import type { SessionMember } from "./MemberAuth.tsx";
 // Shared with the server so "full" means the same thing on both sides of the
@@ -101,6 +103,7 @@ export default function EventsSection(
 
   const [booking, setBooking] = useState<EventItem | null>(null);
   const [cancelling, setCancelling] = useState<EventItem | null>(null);
+  const [editing, setEditing] = useState<EventItem | null>(null);
   // list stays null while the roster request is in flight, so the modal can
   // show a loading state before the names arrive.
   const [roster, setRoster] = useState<
@@ -400,6 +403,15 @@ export default function EventsSection(
                     {isAdmin && (
                       <button
                         type="button"
+                        class="btn dark"
+                        onClick={() => setEditing(ev)}
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        type="button"
                         class="btn red"
                         onClick={() => deleteEvent(ev)}
                       >
@@ -606,7 +618,221 @@ export default function EventsSection(
           )}
         </Modal>
       )}
+      {editing && (
+        <EventEditModal
+          event={editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </Fragment>
+  );
+}
+
+function EventEditModal(
+  { event, onClose }: { event: EventItem; onClose: () => void },
+) {
+  const [title, setTitle] = useState(event.title);
+  const [date, setDate] = useState(isoToLocalDateTime(event.date));
+  const [location, setLocation] = useState(event.location);
+  const [locationUrl, setLocationUrl] = useState(event.locationUrl ?? "");
+  const [description, setDescription] = useState(event.description);
+  const [type, setType] = useState(event.type ?? "wod");
+  const [capacity, setCapacity] = useState(
+    event.capacity ? String(event.capacity) : "",
+  );
+  const [image, setImage] = useState(event.image ?? "");
+  const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const onPickImage = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast("Selecciona un archivo de imagen.", "error");
+      input.value = "";
+      return;
+    }
+    setProcessing(true);
+    try {
+      setImage(await compressImage(file));
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "No se pudo cargar la foto.",
+        "error",
+      );
+    } finally {
+      setProcessing(false);
+      input.value = "";
+    }
+  };
+
+  const submit = async (e: Event) => {
+    e.preventDefault();
+    if (!title.trim() || !date || !location.trim() || !description.trim()) {
+      toast("Rellena todos los campos obligatorios.", "error");
+      return;
+    }
+    const isoDate = localDateTimeToIso(date);
+    if (!isoDate) {
+      toast("La fecha del evento no es válida.", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/events/${event.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          date: isoDate,
+          location: location.trim(),
+          locationUrl: locationUrl.trim(),
+          image,
+          description: description.trim(),
+          type,
+          capacity: capacity ? Number(capacity) : 0,
+        }),
+      });
+      if (res.ok) {
+        toast("Evento actualizado.", "success");
+        globalThis.location.reload();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast(data.error ?? "No se pudo actualizar el evento.", "error");
+      }
+    } catch {
+      toast("Error de conexión.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal open title="Editar evento" onClose={onClose}>
+      <form class="form" onSubmit={submit}>
+        <label class="field">
+          <span>Título</span>
+          <input
+            class="input"
+            type="text"
+            required
+            value={title}
+            onInput={(e) => setTitle((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span>Fecha y hora</span>
+            <input
+              class="input input-datetime"
+              type="datetime-local"
+              required
+              value={date}
+              onInput={(e) => setDate((e.target as HTMLInputElement).value)}
+              onChange={(e) => setDate((e.target as HTMLInputElement).value)}
+            />
+          </label>
+          <label class="field">
+            <span>Tipo</span>
+            <select
+              class="input"
+              value={type}
+              onChange={(e) => setType((e.target as HTMLSelectElement).value)}
+            >
+              <option value="wod">CrossFit</option>
+              <option value="hyrox">HYROX</option>
+              <option value="competition">Competición</option>
+              <option value="social">Social</option>
+              <option value="open">Open box</option>
+              <option value="meeting">Meeting</option>
+            </select>
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>Ubicación</span>
+            <input
+              class="input"
+              type="text"
+              required
+              value={location}
+              onInput={(e) => setLocation((e.target as HTMLInputElement).value)}
+            />
+          </label>
+          <label class="field">
+            <span>
+              Plazas <em>(opcional)</em>
+            </span>
+            <input
+              class="input"
+              type="number"
+              min="1"
+              placeholder="Sin límite"
+              value={capacity}
+              onInput={(e) => setCapacity((e.target as HTMLInputElement).value)}
+            />
+          </label>
+        </div>
+        <label class="field">
+          <span>
+            Link de Google Maps <em>(opcional)</em>
+          </span>
+          <input
+            class="input"
+            type="url"
+            placeholder="https://maps.google.com/..."
+            value={locationUrl}
+            onInput={(e) => setLocationUrl((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label class="field">
+          <span>Descripción</span>
+          <textarea
+            class="input"
+            required
+            value={description}
+            onInput={(e) =>
+              setDescription((e.target as HTMLTextAreaElement).value)}
+          />
+        </label>
+        <label class="field">
+          <span>
+            Foto de portada <em>(opcional)</em>
+          </span>
+          {image
+            ? (
+              <div class="image-preview">
+                <img src={image} alt="Vista previa" />
+                <button
+                  type="button"
+                  class="btn dark btn-sm"
+                  onClick={() => setImage("")}
+                >
+                  Quitar foto
+                </button>
+              </div>
+            )
+            : (
+              <input
+                class="input"
+                type="file"
+                accept="image/*"
+                disabled={processing}
+                onChange={onPickImage}
+              />
+            )}
+          {processing && <small class="muted">Procesando imagen…</small>}
+        </label>
+        <button
+          class="btn green"
+          type="submit"
+          disabled={loading || processing}
+        >
+          {loading ? "Guardando…" : "Guardar cambios"}
+        </button>
+      </form>
+    </Modal>
   );
 }
 
