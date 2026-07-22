@@ -20,6 +20,8 @@ export interface EventItem {
   attendees: number;
   capacity?: number;
   type?: string;
+  locationUrl?: string;
+  image?: string;
 }
 
 interface Attendee {
@@ -40,11 +42,12 @@ type View = "cards" | "calendar";
 type TimeFilter = "upcoming" | "past" | "all";
 
 const EVENT_TYPES: Record<string, { label: string; cls: string }> = {
-  wod: { label: "WOD", cls: "t-wod" },
+  wod: { label: "CrossFit", cls: "t-wod" },
   hyrox: { label: "HYROX", cls: "t-hyrox" },
   competition: { label: "Competición", cls: "t-comp" },
   social: { label: "Social", cls: "t-social" },
   open: { label: "Open box", cls: "t-open" },
+  meeting: { label: "Meeting", cls: "t-meeting" },
 };
 
 const MONTHS = [
@@ -304,6 +307,11 @@ export default function EventsSection(
                 key={ev.id}
                 class={`card event-card ${past ? "is-past" : ""}`}
               >
+                {ev.image && (
+                  <div class="event-cover">
+                    <img src={ev.image} alt={ev.title} loading="lazy" />
+                  </div>
+                )}
                 <div class="card-body">
                   <div class="card-top">
                     <div class="card-titles">
@@ -323,7 +331,19 @@ export default function EventsSection(
 
                   <div class="meta">
                     <span>📅 {formatDateTime(ev.date)}</span>
-                    {ev.location && <span>📍 {ev.location}</span>}
+                    {ev.location &&
+                      (ev.locationUrl
+                        ? (
+                          <a
+                            class="map-link"
+                            href={ev.locationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            📍 {ev.location}
+                          </a>
+                        )
+                        : <span>📍 {ev.location}</span>)}
                   </div>
 
                   {!past && (

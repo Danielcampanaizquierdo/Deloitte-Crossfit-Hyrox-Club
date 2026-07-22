@@ -451,14 +451,81 @@ function PendingRow(
   );
 }
 
+/** Shrinks a picked image into a small JPEG data URI that fits inside a single
+ * Deno KV value (64 KiB limit). Resizes to a max dimension, then steps the JPEG
+ * quality — and, if still too heavy, the size — down until the encoded string
+ * lands under the byte budget. Runs entirely in the browser, so nothing large
+ * ever crosses the network. */
+async function compressImage(file: File, budget = 45_000): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+    reader.readAsDataURL(file);
+  });
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("No se pudo procesar la imagen."));
+    el.src = dataUrl;
+  });
+
+  let maxDim = 1000;
+  for (let pass = 0; pass < 4; pass++) {
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("El navegador no admite el redimensionado.");
+    ctx.drawImage(img, 0, 0, w, h);
+
+    for (let q = 0.7; q >= 0.3; q -= 0.1) {
+      const out = canvas.toDataURL("image/jpeg", q);
+      if (out.length <= budget) return out;
+    }
+    maxDim = Math.round(maxDim * 0.7);
+  }
+  throw new Error("La imagen es demasiado grande, prueba con otra más ligera.");
+}
+
 function EventFormModal({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
+  const [locationUrl, setLocationUrl] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("wod");
   const [capacity, setCapacity] = useState("");
+  const [image, setImage] = useState("");
+  const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const onPickImage = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast("Selecciona un archivo de imagen.", "error");
+      input.value = "";
+      return;
+    }
+    setProcessing(true);
+    try {
+      setImage(await compressImage(file));
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "No se pudo cargar la foto.",
+        "error",
+      );
+    } finally {
+      setProcessing(false);
+      input.value = "";
+    }
+  };
 
   const submit = async (e: Event) => {
     e.preventDefault();
@@ -482,6 +549,8 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
           title: title.trim(),
           date: isoDate,
           location: location.trim(),
+          locationUrl: locationUrl.trim() || undefined,
+          image: image || undefined,
           description: description.trim(),
           type,
           capacity: capacity || undefined,
@@ -533,11 +602,12 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
               value={type}
               onChange={(e) => setType((e.target as HTMLSelectElement).value)}
             >
-              <option value="wod">WOD</option>
+              <option value="wod">CrossFit</option>
               <option value="hyrox">HYROX</option>
               <option value="competition">Competición</option>
               <option value="social">Social</option>
               <option value="open">Open box</option>
+              <option value="meeting">Meeting</option>
             </select>
           </label>
         </div>
@@ -568,6 +638,18 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
           </label>
         </div>
         <label class="field">
+          <span>
+            Link de Google Maps <em>(opcional)</em>
+          </span>
+          <input
+            class="input"
+            type="url"
+            placeholder="https://maps.google.com/..."
+            value={locationUrl}
+            onInput={(e) => setLocationUrl((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label class="field">
           <span>Descripción</span>
           <textarea
             class="input"
@@ -578,7 +660,39 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
               setDescription((e.target as HTMLTextAreaElement).value)}
           />
         </label>
-        <button class="btn green" type="submit" disabled={loading}>
+        <label class="field">
+          <span>
+            Foto de portada <em>(opcional)</em>
+          </span>
+          {image
+            ? (
+              <div class="image-preview">
+                <img src={image} alt="Vista previa" />
+                <button
+                  type="button"
+                  class="btn dark btn-sm"
+                  onClick={() => setImage("")}
+                >
+                  Quitar foto
+                </button>
+              </div>
+            )
+            : (
+              <input
+                class="input"
+                type="file"
+                accept="image/*"
+                disabled={processing}
+                onChange={onPickImage}
+              />
+            )}
+          {processing && <small class="muted">Procesando imagen…</small>}
+        </label>
+        <button
+          class="btn green"
+          type="submit"
+          disabled={loading || processing}
+        >
           {loading ? "Creando…" : "Crear evento"}
         </button>
       </form>

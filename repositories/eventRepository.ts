@@ -138,6 +138,8 @@ export function createEventRepository(kv: Deno.Kv): EventRepository {
       description: data.description,
       attendees: 0,
       type: data.type,
+      locationUrl: data.locationUrl,
+      image: data.image,
       capacity: data.capacity,
       approved: false,
       createdAt: now,

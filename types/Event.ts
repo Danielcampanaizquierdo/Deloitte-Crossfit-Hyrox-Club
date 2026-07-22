@@ -6,6 +6,12 @@ export interface Event {
   description: string;
   attendees: number;
   type?: string;
+  /** Optional link to the venue (e.g. a Google Maps URL). */
+  locationUrl?: string;
+  /** Optional cover photo as a compressed data URI stored inline in KV.
+   * The client shrinks the image well under KV's 64 KiB value limit before
+   * it ever reaches the server. */
+  image?: string;
   /** Maximum bookings. Absent or 0 means unlimited — which is what every
    * event created before capacity existed is. */
   capacity?: number;
@@ -20,6 +26,8 @@ export interface CreateEventRequest {
   location: string;
   description: string;
   type?: string;
+  locationUrl?: string;
+  image?: string;
   capacity?: number;
 }
 
@@ -29,6 +37,8 @@ export interface UpdateEventRequest {
   location?: string;
   description?: string;
   type?: string;
+  locationUrl?: string;
+  image?: string;
   capacity?: number;
   attendees?: number;
   approved?: boolean;

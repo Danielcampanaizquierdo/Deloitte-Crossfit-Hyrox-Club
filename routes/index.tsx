@@ -83,6 +83,8 @@ export const handler: Handlers<PageData, State> = {
         attendees: e.attendees,
         capacity: e.capacity,
         type: e.type,
+        locationUrl: e.locationUrl,
+        image: e.image,
       }));
 
     const prs: PRItem[] = allPRs

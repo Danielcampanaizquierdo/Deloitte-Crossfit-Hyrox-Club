@@ -27,15 +27,32 @@ export const handler: Handlers<unknown, State> = {
       return Response.json({ error: "JSON inválido" }, { status: 400 });
     }
 
-    const { title, date, location, description, type } = body as Record<
-      string,
-      string
-    >;
+    const { title, date, location, description, type, locationUrl, image } =
+      body as Record<string, string>;
     if (!title || !date || !location || !description) {
       return Response.json(
         { error: "Campos requeridos: title, date, location, description" },
         { status: 400 },
       );
+    }
+
+    // The cover photo travels inline as a compressed data URI. KV rejects any
+    // single value over 64 KiB, so guard the payload here rather than let the
+    // write blow up. The client already shrinks well under this; this is the
+    // safety net.
+    if (image !== undefined && image !== null && image !== "") {
+      if (typeof image !== "string" || !image.startsWith("data:image/")) {
+        return Response.json(
+          { error: "La foto no tiene un formato válido." },
+          { status: 400 },
+        );
+      }
+      if (image.length > 60_000) {
+        return Response.json(
+          { error: "La foto es demasiado grande. Prueba con una más ligera." },
+          { status: 400 },
+        );
+      }
     }
 
     // Absent or blank capacity means an uncapped event, which is how every
@@ -59,6 +76,8 @@ export const handler: Handlers<unknown, State> = {
       location,
       description,
       type,
+      locationUrl: locationUrl || undefined,
+      image: image || undefined,
       capacity,
     });
     const approved = await eventService.update(event.id, { approved: true });
