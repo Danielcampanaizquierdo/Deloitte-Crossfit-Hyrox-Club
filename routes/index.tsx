@@ -147,6 +147,8 @@ export const handler: Handlers<PageData, State> = {
         title: upcoming[0].title,
         date: upcoming[0].date,
         location: upcoming[0].location,
+        locationUrl: upcoming[0].locationUrl,
+        image: upcoming[0].image,
       }
       : null;
 

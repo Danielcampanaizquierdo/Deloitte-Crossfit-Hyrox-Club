@@ -144,6 +144,9 @@ button,input,textarea,select{font-family:inherit}
 }
 .wordmark{height:180px;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:#000;display:grid;place-items:center;margin-bottom:18px;overflow:hidden;padding:28px}
 .wordmark img{display:block;margin:0 auto;max-width:74%;max-height:100%;width:auto;height:auto;object-fit:contain}
+/* When the next event has a cover photo it replaces the club wordmark in the hero card. Same box, but the photo fills it. */
+.hero-media{height:180px;border:1px solid rgba(134,188,37,.28);border-radius:24px;background:#000;margin-bottom:18px;overflow:hidden}
+.hero-media img{width:100%;height:100%;object-fit:cover;display:block}
 .hero-next-title{font-family:var(--font-display);letter-spacing:.08em;text-transform:uppercase;margin:6px 0 10px;font-size:30px;line-height:1}
 .hero-next-meta{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);margin-bottom:16px}
 .hero-next-meta span::first-letter{font-size:14px}
@@ -152,6 +155,14 @@ button,input,textarea,select{font-family:inherit}
 .timebox{border:1px solid rgba(255,255,255,.11);border-radius:15px;background:rgba(0,0,0,.62);text-align:center;padding:12px 0}
 .timebox b{display:block;font-size:26px;color:var(--green);font-family:var(--font-mono);font-weight:700;letter-spacing:-.02em}
 .timebox small{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em}
+/* Highlighted countdown in the hero: its own panel, bigger glowing digits. */
+.hero-countdown-wrap{margin-top:16px;padding:16px 14px 14px;border:1px solid rgba(134,188,37,.32);border-radius:20px;background:linear-gradient(180deg,rgba(134,188,37,.08),rgba(134,188,37,.02));box-shadow:0 0 40px rgba(134,188,37,.12) inset}
+.hero-countdown-label{display:block;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.28em;color:var(--green);margin-bottom:12px}
+.hero-countdown{gap:10px}
+.hero-countdown .timebox{padding:16px 0;border-color:rgba(134,188,37,.22);background:rgba(0,0,0,.5)}
+.hero-countdown .timebox b{font-size:40px;text-shadow:0 0 22px rgba(134,188,37,.38)}
+.hero-countdown .timebox small{font-size:11px;letter-spacing:.18em}
+.hero-countdown .badge-live{font-size:16px;padding:8px 16px}
 
 /* ── Buttons ────────────────────────────────────────────────────────── */
 .btn{

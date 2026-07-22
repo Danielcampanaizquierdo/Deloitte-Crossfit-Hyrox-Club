@@ -6,7 +6,14 @@ import { emit, goToTab, OPEN_BOOKING, OPEN_JOIN } from "../lib/bus.ts";
 
 interface Props {
   nextEvent:
-    | { id: string; title: string; date: string; location: string }
+    | {
+      id: string;
+      title: string;
+      date: string;
+      location: string;
+      locationUrl?: string;
+      image?: string;
+    }
     | null;
   memberCount: number;
   eventCount: number;
@@ -71,14 +78,22 @@ export default function Hero(
       </div>
 
       <aside class="hero-card">
-        <div class="wordmark">
-          <img
-            src="/images/letras.png"
-            alt="Deloitte CrossFit HYROX Club"
-            width="320"
-            height="120"
-          />
-        </div>
+        {nextEvent?.image
+          ? (
+            <div class="hero-media">
+              <img src={nextEvent.image} alt={nextEvent.title} />
+            </div>
+          )
+          : (
+            <div class="wordmark">
+              <img
+                src="/images/letras.png"
+                alt="Deloitte CrossFit HYROX Club"
+                width="320"
+                height="120"
+              />
+            </div>
+          )}
 
         {nextEvent
           ? (
@@ -95,9 +110,28 @@ export default function Hero(
                     minute: "2-digit",
                   })}
                 </span>
-                {nextEvent.location && <span>📍 {nextEvent.location}</span>}
+                {nextEvent.location && (
+                  nextEvent.locationUrl
+                    ? (
+                      <a
+                        class="map-link"
+                        href={nextEvent.locationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        📍 {nextEvent.location}
+                      </a>
+                    )
+                    : <span>📍 {nextEvent.location}</span>
+                )}
               </div>
-              <Countdown targetDate={nextEvent.date} />
+              <div class="hero-countdown-wrap">
+                <span class="hero-countdown-label">⏳ Empieza en</span>
+                <Countdown
+                  targetDate={nextEvent.date}
+                  className="countdown hero-countdown"
+                />
+              </div>
             </Fragment>
           )
           : (
