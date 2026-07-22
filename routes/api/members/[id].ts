@@ -56,7 +56,14 @@ export const handler: Handlers<unknown, State> = {
     }
     const body = parsed as Record<string, unknown>;
 
-    const accepted = new Set(["name", "level", "goal", "location", "bio"]);
+    const accepted = new Set([
+      "name",
+      "level",
+      "goal",
+      "location",
+      "bio",
+      "avatar",
+    ]);
     if (ctx.state.isAdmin) accepted.add("approved");
     const unsupported = Object.keys(body).filter((key) => !accepted.has(key));
     if (unsupported.length > 0) {
@@ -104,6 +111,23 @@ export const handler: Handlers<unknown, State> = {
         return invalid("bio no puede superar 500 caracteres");
       }
       allowed.bio = bio || undefined;
+    }
+    // The avatar travels inline as a compressed data URI; guard its size and
+    // shape before it reaches KV (64 KiB per value). An empty string removes it.
+    if (body.avatar !== undefined) {
+      if (typeof body.avatar !== "string") {
+        return invalid("avatar debe ser texto");
+      }
+      const avatar = body.avatar;
+      if (avatar !== "") {
+        if (!avatar.startsWith("data:image/")) {
+          return invalid("La foto no tiene un formato válido.");
+        }
+        if (avatar.length > 60_000) {
+          return invalid("La foto es demasiado grande. Prueba con otra más ligera.");
+        }
+      }
+      allowed.avatar = avatar || undefined;
     }
     // Approval is a moderation decision, so only an admin may change it.
     if (ctx.state.isAdmin && body.approved !== undefined) {

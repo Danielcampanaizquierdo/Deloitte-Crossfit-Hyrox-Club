@@ -6,6 +6,9 @@ export interface Member {
   goal: "crossfit" | "hyrox" | "general";
   location: string;
   bio?: string;
+  /** Optional profile photo as a compressed data URI stored inline in KV.
+   * The browser shrinks it under KV's 64 KiB value limit before upload. */
+  avatar?: string;
   approved: boolean;
   /** New records are active. Undefined is treated as active for records
    * written before account deactivation existed. */
@@ -71,6 +74,7 @@ export interface UpdateMemberRequest {
   goal?: "crossfit" | "hyrox" | "general";
   location?: string;
   bio?: string;
+  avatar?: string;
   approved?: boolean;
   passwordHash?: string;
   passwordSalt?: string;

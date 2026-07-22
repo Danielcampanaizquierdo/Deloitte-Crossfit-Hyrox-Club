@@ -4,6 +4,7 @@ import { Fragment, h } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import Modal from "../components/Modal.tsx";
 import { toast } from "../lib/toast.ts";
+import { compressImage } from "../lib/imageCompress.ts";
 import { on, OPEN_JOIN, OPEN_LOGIN } from "../lib/bus.ts";
 
 export interface SessionMember {
@@ -22,7 +23,7 @@ interface Props {
  * duplicating them. */
 export default function MemberAuth({ member }: Props) {
   const [mode, setMode] = useState<
-    "login" | "register" | "change-password" | null
+    "login" | "register" | "change-password" | "edit-profile" | null
   >(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -53,6 +54,13 @@ export default function MemberAuth({ member }: Props) {
                 </span>
                 <span>{member.name}</span>
               </span>
+              <button
+                type="button"
+                class="btn ghost btn-sm"
+                onClick={() => setMode("edit-profile")}
+              >
+                Editar perfil
+              </button>
               <button
                 type="button"
                 class="btn ghost btn-sm"
@@ -105,7 +113,212 @@ export default function MemberAuth({ member }: Props) {
       {mode === "change-password" && member && (
         <ChangePasswordModal onClose={() => setMode(null)} />
       )}
+      {mode === "edit-profile" && member && (
+        <EditProfileModal memberId={member.id} onClose={() => setMode(null)} />
+      )}
     </Fragment>
+  );
+}
+
+function EditProfileModal(
+  { memberId, onClose }: { memberId: string; onClose: () => void },
+) {
+  const [name, setName] = useState("");
+  const [level, setLevel] = useState("beginner");
+  const [goal, setGoal] = useState("crossfit");
+  const [location, setLocation] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [ready, setReady] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Prefill from the live profile so a member edits their real current values,
+  // not the trimmed session summary (which only knows id/name/email).
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = await res.json().catch(() => ({}));
+        const m = data?.member;
+        if (alive && m) {
+          setName(m.name ?? "");
+          setLevel(m.level ?? "beginner");
+          setGoal(m.goal ?? "crossfit");
+          setLocation(m.location ?? "");
+          setBio(m.bio ?? "");
+          setAvatar(m.avatar ?? "");
+        }
+      } finally {
+        if (alive) setReady(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const onPickImage = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast("Selecciona un archivo de imagen.", "error");
+      input.value = "";
+      return;
+    }
+    setProcessing(true);
+    try {
+      setAvatar(await compressImage(file));
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "No se pudo cargar la foto.",
+        "error",
+      );
+    } finally {
+      setProcessing(false);
+      input.value = "";
+    }
+  };
+
+  const submit = async (e: Event) => {
+    e.preventDefault();
+    if (!name.trim() || !location.trim()) {
+      toast("El nombre y la ubicación son obligatorios.", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/members/${memberId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          level,
+          goal,
+          location: location.trim(),
+          bio: bio.trim(),
+          avatar,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(data.error ?? "No se pudo guardar el perfil.", "error");
+        return;
+      }
+      toast("Perfil actualizado.", "success");
+      globalThis.location.reload();
+    } catch {
+      toast("Error de conexión. Inténtalo de nuevo.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal open title="Editar perfil" onClose={onClose}>
+      {!ready
+        ? <p class="muted">Cargando…</p>
+        : (
+          <form class="form" onSubmit={submit}>
+            <label class="field">
+              <span>Nombre</span>
+              <input
+                class="input"
+                type="text"
+                required
+                value={name}
+                onInput={(e) => setName((e.target as HTMLInputElement).value)}
+              />
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>Nivel</span>
+                <select
+                  class="input"
+                  value={level}
+                  onChange={(e) =>
+                    setLevel((e.target as HTMLSelectElement).value)}
+                >
+                  <option value="beginner">Principiante</option>
+                  <option value="intermediate">Intermedio</option>
+                  <option value="advanced">Avanzado</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Objetivo</span>
+                <select
+                  class="input"
+                  value={goal}
+                  onChange={(e) =>
+                    setGoal((e.target as HTMLSelectElement).value)}
+                >
+                  <option value="crossfit">CrossFit</option>
+                  <option value="hyrox">HYROX</option>
+                  <option value="general">Fitness general</option>
+                </select>
+              </label>
+            </div>
+            <label class="field">
+              <span>Ubicación</span>
+              <input
+                class="input"
+                type="text"
+                required
+                value={location}
+                onInput={(e) =>
+                  setLocation((e.target as HTMLInputElement).value)}
+              />
+            </label>
+            <label class="field">
+              <span>
+                Sobre ti <em>(opcional)</em>
+              </span>
+              <textarea
+                class="input"
+                value={bio}
+                onInput={(e) => setBio((e.target as HTMLTextAreaElement).value)}
+              />
+            </label>
+            <label class="field">
+              <span>
+                Foto de perfil <em>(opcional)</em>
+              </span>
+              {avatar
+                ? (
+                  <div class="image-preview">
+                    <img src={avatar} alt="Vista previa" />
+                    <button
+                      type="button"
+                      class="btn dark btn-sm"
+                      onClick={() => setAvatar("")}
+                    >
+                      Quitar foto
+                    </button>
+                  </div>
+                )
+                : (
+                  <input
+                    class="input"
+                    type="file"
+                    accept="image/*"
+                    disabled={processing}
+                    onChange={onPickImage}
+                  />
+                )}
+              {processing && <small class="muted">Procesando imagen…</small>}
+            </label>
+            <button
+              class="btn green"
+              type="submit"
+              disabled={loading || processing}
+            >
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </button>
+          </form>
+        )}
+    </Modal>
   );
 }
 

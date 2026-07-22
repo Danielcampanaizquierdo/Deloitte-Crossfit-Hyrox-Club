@@ -19,6 +19,7 @@ export interface MemberItem {
   goal: string;
   location: string;
   bio?: string;
+  avatar?: string;
 }
 
 interface MemberPR {
@@ -232,7 +233,11 @@ export default function MembersSection(
             >
               <div class="card-body">
                 <div class="member-head">
-                  <div class="avatar">{initials(m.name)}</div>
+                  <div class="avatar">
+                    {m.avatar
+                      ? <img src={m.avatar} alt={m.name} />
+                      : initials(m.name)}
+                  </div>
                   <div>
                     <h3>{m.name}</h3>
                     <div class="meta"><span>📍 {m.location}</span></div>
@@ -273,7 +278,11 @@ export default function MembersSection(
         >
           <div class="profile">
             <div class="profile-head">
-              <div class="avatar avatar-lg">{initials(detail.name)}</div>
+              <div class="avatar avatar-lg">
+                {detail.avatar
+                  ? <img src={detail.avatar} alt={detail.name} />
+                  : initials(detail.name)}
+              </div>
               <div>
                 <div class="meta"><span>📍 {detail.location}</span></div>
                 {detail.bio && <p class="muted">{detail.bio}</p>}

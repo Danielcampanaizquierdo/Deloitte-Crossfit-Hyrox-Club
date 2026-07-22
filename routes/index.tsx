@@ -135,6 +135,7 @@ export const handler: Handlers<PageData, State> = {
         goal: m.goal,
         location: m.location,
         bio: m.bio,
+        avatar: m.avatar,
       }));
 
     const now = Date.now();
