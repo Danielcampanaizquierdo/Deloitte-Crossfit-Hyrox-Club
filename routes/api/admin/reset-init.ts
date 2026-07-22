@@ -11,7 +11,7 @@ import {
 import { hashPassword } from "../../../lib/password.ts";
 
 export const handler: Handlers = {
-  async GET(req) {
+  async POST(req) {
     const url = new URL(req.url);
     const secret = url.searchParams.get("secret");
     const expected = Deno.env.get("RESET_SECRET");
@@ -20,13 +20,21 @@ export const handler: Handlers = {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const email = Deno.env.get("INITIAL_ADMIN_EMAIL");
-    const password = Deno.env.get("INITIAL_ADMIN_PASSWORD");
-    const name = Deno.env.get("INITIAL_ADMIN_NAME") ?? "Admin";
+    let body: Record<string, unknown> = {};
+    try {
+      body = await req.json();
+    } catch { /* ignore */ }
+
+    const email = (body.email as string | undefined) ??
+      Deno.env.get("INITIAL_ADMIN_EMAIL");
+    const password = (body.password as string | undefined) ??
+      Deno.env.get("INITIAL_ADMIN_PASSWORD");
+    const name = (body.name as string | undefined) ??
+      Deno.env.get("INITIAL_ADMIN_NAME") ?? "Admin";
 
     if (!email || !password) {
       return Response.json(
-        { error: "INITIAL_ADMIN_EMAIL or INITIAL_ADMIN_PASSWORD not set" },
+        { error: "Provide email+password in body or set INITIAL_ADMIN_EMAIL/PASSWORD" },
         { status: 400 },
       );
     }
