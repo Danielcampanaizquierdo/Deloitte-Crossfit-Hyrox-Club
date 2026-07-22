@@ -454,7 +454,6 @@ function PendingRow(
 function EventFormModal({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("10:00");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("wod");
@@ -463,12 +462,12 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
 
   const submit = async (e: Event) => {
     e.preventDefault();
-    if (!title.trim() || !date || !time || !location.trim() || !description.trim()) {
+    if (!title.trim() || !date || !location.trim() || !description.trim()) {
       toast("Rellena todos los campos obligatorios.", "error");
       return;
     }
 
-    const isoDate = localDateTimeToIso(`${date}T${time}`);
+    const isoDate = localDateTimeToIso(date);
     if (!isoDate) {
       toast("La fecha del evento no es válida.", "error");
       return;
@@ -518,22 +517,13 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
         </label>
         <div class="field-row">
           <label class="field">
-            <span>Fecha</span>
+            <span>Fecha y hora</span>
             <input
-              class="input input-date"
-              type="date"
+              class="input input-datetime"
+              type="datetime-local"
               required
+              onInput={(e) => setDate((e.target as HTMLInputElement).value)}
               onChange={(e) => setDate((e.target as HTMLInputElement).value)}
-            />
-          </label>
-          <label class="field">
-            <span>Hora</span>
-            <input
-              class="input input-time"
-              type="time"
-              required
-              value={time}
-              onChange={(e) => setTime((e.target as HTMLInputElement).value)}
             />
           </label>
           <label class="field">
