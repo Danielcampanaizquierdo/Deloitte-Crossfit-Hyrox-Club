@@ -9,6 +9,7 @@ import * as $api_admin_logout from "./routes/api/admin/logout.ts";
 import * as $api_admin_members_id_approve from "./routes/api/admin/members/[id]/approve.ts";
 import * as $api_admin_prs_id_approve from "./routes/api/admin/prs/[id]/approve.ts";
 import * as $api_admin_results_id_approve from "./routes/api/admin/results/[id]/approve.ts";
+import * as $api_auth_change_password from "./routes/api/auth/change-password.ts";
 import * as $api_auth_login from "./routes/api/auth/login.ts";
 import * as $api_auth_logout from "./routes/api/auth/logout.ts";
 import * as $api_auth_me from "./routes/api/auth/me.ts";
@@ -63,6 +64,7 @@ const manifest = {
     "./routes/api/admin/members/[id]/approve.ts": $api_admin_members_id_approve,
     "./routes/api/admin/prs/[id]/approve.ts": $api_admin_prs_id_approve,
     "./routes/api/admin/results/[id]/approve.ts": $api_admin_results_id_approve,
+    "./routes/api/auth/change-password.ts": $api_auth_change_password,
     "./routes/api/auth/login.ts": $api_auth_login,
     "./routes/api/auth/logout.ts": $api_auth_logout,
     "./routes/api/auth/me.ts": $api_auth_me,

@@ -117,3 +117,46 @@ Deno.test("member approval moves the member between approval indexes", async () 
     assertEquals(approvedList[0].id, member.id);
   });
 });
+
+Deno.test("member deletion leaves a credential-free tombstone and reserves the identity", async () => {
+  await withKv(async (kv) => {
+    const repo = createMemberRepository(kv);
+    const member = await repo.create({
+      name: "Departing Member",
+      email: "departing@example.com",
+      level: "advanced",
+      goal: "hyrox",
+      location: "Madrid",
+      passwordHash: "secret-hash",
+      passwordSalt: "secret-salt",
+    });
+    await repo.approve(member.id);
+
+    assert(await repo.delete(member.id));
+    const tombstone = await repo.get(member.id);
+    assert(tombstone);
+    assertEquals(tombstone.id, member.id);
+    assertEquals(tombstone.email, member.email);
+    assertEquals(tombstone.approved, false);
+    assertEquals(tombstone.active, false);
+    assert(tombstone.deletedAt instanceof Date);
+    assertEquals("passwordHash" in tombstone, false);
+    assertEquals("passwordSalt" in tombstone, false);
+    assertEquals(await repo.list(), []);
+    assertEquals(await repo.listApproved(), []);
+    assertEquals(await repo.listPending(), []);
+    assertEquals(await repo.approve(member.id), null);
+
+    await assertRejects(
+      () =>
+        repo.create({
+          name: "Identity Hijacker",
+          email: "departing@example.com",
+          level: "beginner",
+          goal: "general",
+          location: "Barcelona",
+        }),
+      DuplicateMemberEmailError,
+    );
+  });
+});

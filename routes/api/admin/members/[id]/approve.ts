@@ -1,6 +1,7 @@
 import { Handlers } from "$fresh/server.ts";
 import { memberService } from "../../../../../services/memberService.ts";
 import { State } from "../../../../../types/State.ts";
+import { toPublicMember } from "../../../../../types/Member.ts";
 
 export const handler: Handlers<unknown, State> = {
   // POST /api/admin/members/[id]/approve - Approve member
@@ -19,7 +20,10 @@ export const handler: Handlers<unknown, State> = {
         });
       }
       return new Response(
-        JSON.stringify({ message: "Member approved", member }),
+        JSON.stringify({
+          message: "Member approved",
+          member: toPublicMember(member),
+        }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },

@@ -43,10 +43,20 @@ export const handler: Handlers<unknown, State> = {
         memberEmail: member.email,
         comments,
       });
+      // The event can be deleted after the route's read but before the
+      // repository transaction. Never report a successful creation with a
+      // null body in that race.
+      if (!signup) {
+        return Response.json({ error: "Evento no encontrado" }, {
+          status: 404,
+        });
+      }
       return Response.json(signup, { status: 201 });
     } catch (err) {
       if (err instanceof Error && err.message.includes("Already signed up")) {
-        return Response.json({ error: "Ya estás apuntado a este evento" }, { status: 409 });
+        return Response.json({ error: "Ya estás apuntado a este evento" }, {
+          status: 409,
+        });
       }
       if (err instanceof Error && err.message.includes("Event is full")) {
         return Response.json(
@@ -64,11 +74,20 @@ export const handler: Handlers<unknown, State> = {
         );
       }
       if (
-        err instanceof Error && err.message.includes("Event has already started")
+        err instanceof Error &&
+        err.message.includes("Event has already started")
       ) {
         return Response.json(
           { error: "Este evento ya ha comenzado" },
           { status: 410 },
+        );
+      }
+      if (
+        err instanceof Error && err.message.includes("Member is not eligible")
+      ) {
+        return Response.json(
+          { error: "Tu cuenta ya no está activa o aprobada" },
+          { status: 403 },
         );
       }
       throw err;

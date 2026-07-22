@@ -1,7 +1,16 @@
 import { Handlers } from "$fresh/server.ts";
 import { memberService } from "../../../services/memberService.ts";
 import { verifyPassword } from "../../../lib/password.ts";
-import { createMemberSession } from "../../../lib/session.ts";
+import {
+  createMemberSession,
+  SessionCredentialsChangedError,
+} from "../../../lib/session.ts";
+import { kv } from "../../../lib/kv.ts";
+import {
+  clientAddress,
+  consumeRateLimit,
+  rateLimitedResponse,
+} from "../../../lib/rateLimit.ts";
 import { toPublicMember } from "../../../types/Member.ts";
 import { State } from "../../../types/State.ts";
 
@@ -13,7 +22,7 @@ const DUMMY_PASSWORD_RECORD = {
 const privateHeaders = { "Cache-Control": "no-store" };
 
 export const handler: Handlers<unknown, State> = {
-  async POST(req, _ctx) {
+  async POST(req, ctx) {
     let body: Record<string, string>;
     try {
       body = await req.json();
@@ -32,6 +41,14 @@ export const handler: Handlers<unknown, State> = {
       );
     }
 
+    const limit = await consumeRateLimit(await kv, {
+      scope: "member_login",
+      identifier: `${clientAddress(req, ctx.remoteAddr?.hostname)}:${email}`,
+      limit: 8,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
+
     const member = await memberService.getByEmail(email);
 
     // Always run the verification, even when the email is unknown, so a
@@ -42,7 +59,7 @@ export const handler: Handlers<unknown, State> = {
       : DUMMY_PASSWORD_RECORD;
     const valid = await verifyPassword(password, record);
 
-    if (!member || !valid) {
+    if (!member || !valid || member.active === false || member.deletedAt) {
       return Response.json(
         { error: "Email o contraseña incorrectos" },
         { status: 401, headers: privateHeaders },
@@ -62,19 +79,27 @@ export const handler: Handlers<unknown, State> = {
     try {
       return Response.json(
         { member: toPublicMember(member) },
-      {
-        headers: {
-          ...privateHeaders,
-          "set-cookie": await createMemberSession(member.id),
+        {
+          headers: {
+            ...privateHeaders,
+            "set-cookie": await createMemberSession(
+              member.id,
+              member.passwordHash,
+            ),
+          },
         },
-      },
       );
     } catch (err) {
+      if (err instanceof SessionCredentialsChangedError) {
+        return Response.json(
+          { error: "Las credenciales han cambiado; inicia sesión de nuevo" },
+          { status: 401, headers: privateHeaders },
+        );
+      }
       console.error("member login: could not create session", err);
       return Response.json(
         {
-          error:
-            "Credenciales correctas, pero el servidor no puede crear la " +
+          error: "Credenciales correctas, pero el servidor no puede crear la " +
             "sesión. Avisa a un administrador (SESSION_SECRET).",
         },
         { status: 500 },

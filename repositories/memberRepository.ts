@@ -46,7 +46,10 @@ async function resolveIds(
   for await (const entry of entries) {
     const record = await kv.get<Member>(memberKey(entry.value));
     // Defensively skip index entries whose primary record is gone.
-    if (record.value) members.push(record.value);
+    if (
+      record.value && record.value.active !== false &&
+      !record.value.deletedAt
+    ) members.push(record.value);
   }
   return members;
 }
@@ -72,7 +75,9 @@ export function createMemberRepository(kv: Deno.Kv): MemberRepository {
   async function list(): Promise<Member[]> {
     const members: Member[] = [];
     for await (const entry of kv.list<Member>({ prefix: ["members"] })) {
-      if (entry.value) members.push(entry.value);
+      if (
+        entry.value && entry.value.active !== false && !entry.value.deletedAt
+      ) members.push(entry.value);
     }
     return members;
   }
@@ -111,6 +116,7 @@ export function createMemberRepository(kv: Deno.Kv): MemberRepository {
       location: data.location,
       bio: data.bio,
       approved: false,
+      active: true,
       passwordHash: data.passwordHash,
       passwordSalt: data.passwordSalt,
       joinedAt: now,
@@ -148,6 +154,7 @@ export function createMemberRepository(kv: Deno.Kv): MemberRepository {
       const primary = await kv.get<Member>(memberKey(id));
       if (primary.value === null) return null;
       const current = primary.value;
+      if (current.active === false || current.deletedAt) return null;
 
       const updated: Member = {
         ...current,
@@ -201,12 +208,28 @@ export function createMemberRepository(kv: Deno.Kv): MemberRepository {
       const primary = await kv.get<Member>(memberKey(id));
       if (primary.value === null) return false;
       const current = primary.value;
+      if (current.active === false || current.deletedAt) return false;
+
+      // Keep the stable identity and email reservation so historical PRs,
+      // scores and bookings cannot later be attributed to a different person.
+      // Credentials and approval are revoked in the same atomic write.
+      const {
+        passwordHash: _passwordHash,
+        passwordSalt: _passwordSalt,
+        ...identity
+      } = current;
+      const deleted: Member = {
+        ...identity,
+        approved: false,
+        active: false,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      };
 
       const res = await kv.atomic()
         .check(primary)
-        .delete(memberKey(id))
+        .set(memberKey(id), deleted)
         .delete(memberApprovalKey(current.approved, id))
-        .delete(memberEmailKey(current.email))
         .commit();
       if (res.ok) return true;
     }

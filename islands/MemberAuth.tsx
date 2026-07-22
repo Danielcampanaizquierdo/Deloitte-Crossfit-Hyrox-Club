@@ -21,7 +21,9 @@ interface Props {
  * Owns both forms so any island can ask for them over the bus rather than
  * duplicating them. */
 export default function MemberAuth({ member }: Props) {
-  const [mode, setMode] = useState<"login" | "register" | null>(null);
+  const [mode, setMode] = useState<
+    "login" | "register" | "change-password" | null
+  >(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => on(OPEN_LOGIN, () => setMode("login")), []);
@@ -51,6 +53,13 @@ export default function MemberAuth({ member }: Props) {
                 </span>
                 <span>{member.name}</span>
               </span>
+              <button
+                type="button"
+                class="btn ghost btn-sm"
+                onClick={() => setMode("change-password")}
+              >
+                Seguridad
+              </button>
               <button
                 type="button"
                 class="btn ghost btn-sm"
@@ -93,7 +102,102 @@ export default function MemberAuth({ member }: Props) {
           onSwitch={() => setMode("login")}
         />
       )}
+      {mode === "change-password" && member && (
+        <ChangePasswordModal onClose={() => setMode(null)} />
+      )}
     </Fragment>
+  );
+}
+
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e: Event) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      toast("La nueva contraseña debe tener al menos 8 caracteres.", "error");
+      return;
+    }
+    if (newPassword !== confirmation) {
+      toast("Las contraseñas no coinciden.", "error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast(data.error ?? "No se pudo cambiar la contraseña.", "error");
+        return;
+      }
+      toast("Contraseña cambiada y sesiones anteriores cerradas.", "success");
+      globalThis.location.reload();
+    } catch {
+      toast("Error de conexión. Inténtalo de nuevo.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      open
+      title="Cambiar contraseña"
+      subtitle="Se cerrarán las demás sesiones de tu cuenta"
+      onClose={onClose}
+    >
+      <form class="form" onSubmit={submit}>
+        <label class="field">
+          <span>Contraseña actual</span>
+          <input
+            class="input"
+            type="password"
+            required
+            autocomplete="current-password"
+            value={currentPassword}
+            onInput={(e) =>
+              setCurrentPassword((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label class="field">
+          <span>Nueva contraseña</span>
+          <input
+            class="input"
+            type="password"
+            required
+            minLength={8}
+            autocomplete="new-password"
+            value={newPassword}
+            onInput={(e) =>
+              setNewPassword((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label class="field">
+          <span>Repite la nueva contraseña</span>
+          <input
+            class="input"
+            type="password"
+            required
+            minLength={8}
+            autocomplete="new-password"
+            value={confirmation}
+            onInput={(e) =>
+              setConfirmation((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <button class="btn green" type="submit" disabled={loading}>
+          {loading ? "Actualizando…" : "Cambiar contraseña"}
+        </button>
+      </form>
+    </Modal>
   );
 }
 
@@ -328,7 +432,9 @@ function RegisterModal(
           />
         </label>
         <label class="field">
-          <span>Sobre ti <em>(opcional)</em></span>
+          <span>
+            Sobre ti <em>(opcional)</em>
+          </span>
           <textarea
             class="input"
             placeholder="Desde cuándo entrenas, objetivos, competiciones…"

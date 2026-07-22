@@ -1,7 +1,10 @@
 import type { Member } from "./Member.ts";
+import type { Admin } from "./Admin.ts";
 
 export interface State {
   isAdmin: boolean;
+  /** Active administrator resolved from the revocable admin session. */
+  admin: Admin | null;
   /** The logged-in member, resolved from the member session cookie by
    * routes/_middleware.ts. Null when nobody is logged in.
    *

@@ -9,11 +9,11 @@ import type { SessionMember } from "./MemberAuth.tsx";
 import {
   formatPRValue,
   isHigherBetter,
-  MOVEMENTS,
+  metricUnit,
   type MovementCategory,
   movementCategory,
   movementMetric,
-  metricUnit,
+  MOVEMENTS,
   parsePRValue,
   type PRMetric,
   rankByMetric,
@@ -99,7 +99,8 @@ export default function LeaderboardSection({ prs: initial, member }: Props) {
         ranked.some((r) => r.memberName.toLowerCase().includes(term))
       )
       .sort((a, b) =>
-        b.ranked.length - a.ranked.length || a.movement.localeCompare(b.movement)
+        b.ranked.length - a.ranked.length ||
+        a.movement.localeCompare(b.movement)
       );
   }, [prs, category, search]);
 
@@ -269,9 +270,18 @@ function PRFormModal(
         body: JSON.stringify({ movement, weight: numeric, metric, date }),
       });
       if (res.ok) {
-        toast("¡PR enviado! Aparecerá en cuanto lo revise un admin.", "success");
+        toast(
+          "¡PR enviado! Aparecerá en cuanto lo revise un admin.",
+          "success",
+        );
         onSubmitted();
       } else {
+        if (res.status === 401) {
+          onClose();
+          toast("Tu sesión ha caducado. Vuelve a iniciarla.", "info");
+          setTimeout(() => emit(OPEN_LOGIN), 0);
+          return;
+        }
         const data = await res.json().catch(() => ({}));
         toast(data.error ?? "No se pudo registrar el PR.", "error");
       }

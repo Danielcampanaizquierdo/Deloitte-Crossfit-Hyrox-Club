@@ -205,6 +205,7 @@ Deno.test("prService: create resolves memberName from memberService when memberI
       goal: "crossfit",
       location: "Madrid",
     });
+    await memberService.approve(member.id);
 
     const pr = await service.create({
       memberId: member.id,
@@ -294,10 +295,19 @@ Deno.test("signupService: isSignedUp is an exact (case-sensitive) match", async 
       memberEmail: "athlete@example.com",
     });
 
-    assertEquals(await service.isSignedUp(event.id, "athlete@example.com"), true);
+    assertEquals(
+      await service.isSignedUp(event.id, "athlete@example.com"),
+      true,
+    );
     // Different case is a different string: exact match, no normalization.
-    assertEquals(await service.isSignedUp(event.id, "Athlete@example.com"), false);
-    assertEquals(await service.isSignedUp(event.id, "someone-else@example.com"), false);
+    assertEquals(
+      await service.isSignedUp(event.id, "Athlete@example.com"),
+      false,
+    );
+    assertEquals(
+      await service.isSignedUp(event.id, "someone-else@example.com"),
+      false,
+    );
   });
 });
 
@@ -385,5 +395,36 @@ Deno.test("signupService: countByEvent counts signups for the event", async () =
     });
 
     assertEquals(await service.countByEvent(event.id), 1);
+  });
+});
+
+Deno.test("signupService: member cancellation never claims a legacy email-only booking", async () => {
+  await withKv(async (kv) => {
+    const eventRepo = createEventRepository(kv);
+    const signupRepo = createSignupRepository(kv);
+    const service = createSignupService(signupRepo);
+    const event = await eventRepo.create({
+      title: "Legacy booking",
+      date: futureIso(),
+      location: "Gym",
+      description: "No stable owner id",
+    });
+    await eventRepo.update(event.id, { approved: true });
+    const legacy = await signupRepo.create({
+      eventId: event.id,
+      memberName: "Legacy Athlete",
+      memberEmail: "legacy@example.com",
+    });
+    assert(legacy);
+
+    assertEquals(
+      await service.cancelForMember(
+        event.id,
+        "mbr-current",
+        "legacy@example.com",
+      ),
+      false,
+    );
+    assert(await signupRepo.get(legacy.id));
   });
 });

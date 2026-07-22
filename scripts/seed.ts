@@ -7,7 +7,10 @@
 // set, so it cannot be pointed at the production deployment by accident.
 
 const baseUrl = Deno.args[0] ?? "http://localhost:8000";
-const passcode = Deno.env.get("ADMIN_PASSCODE") ?? "ClubAdmin2026";
+const adminEmail = Deno.env.get("SEED_ADMIN_EMAIL") ??
+  Deno.env.get("INITIAL_ADMIN_EMAIL") ?? "";
+const adminPassword = Deno.env.get("SEED_ADMIN_PASSWORD") ??
+  Deno.env.get("INITIAL_ADMIN_PASSWORD") ?? "";
 
 // Every seeded athlete gets the same password so the demo data is actually
 // usable: you can log in as any of them and see the member view.
@@ -72,14 +75,22 @@ function daysFromNow(days: number, hour = 10, minute = 0): string {
 }
 
 // ── Admin session ───────────────────────────────────────────────────────
+if (!adminEmail || !adminPassword) {
+  console.error(
+    "Set SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD (or INITIAL_ADMIN_EMAIL/" +
+      "INITIAL_ADMIN_PASSWORD) before seeding.",
+  );
+  Deno.exit(1);
+}
+
 const login = await fetch(`${baseUrl}/api/admin/login`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ passcode }),
+  body: JSON.stringify({ email: adminEmail, password: adminPassword }),
 });
 if (!login.ok) {
   console.error(
-    `Admin login failed (${login.status}). Is ADMIN_PASSCODE set on the server?`,
+    `Admin login failed (${login.status}). Check the initial admin credentials.`,
   );
   Deno.exit(1);
 }
@@ -110,7 +121,8 @@ const events = [
     title: "Open Box Sábado",
     date: daysFromNow(10, 11, 0),
     location: "Box Madrid Centro",
-    description: "Entrenamiento libre con coach de guardia. Abierto a invitados.",
+    description:
+      "Entrenamiento libre con coach de guardia. Abierto a invitados.",
     type: "open",
   },
   {
@@ -140,17 +152,55 @@ console.log(`✓ ${eventIds.length} events`);
 
 // ── Members ─────────────────────────────────────────────────────────────
 const members = [
-  ["Lucía Fernández", "lucia@example.com", "advanced", "hyrox", "Madrid",
-    "Compitiendo en HYROX desde 2024. Objetivo: sub 70 en individual."],
-  ["Carlos Ibáñez", "carlos@example.com", "advanced", "crossfit", "Madrid",
-    "Halterofilia y gimnásticos. Buscando el primer muscle-up estricto."],
-  ["Marta Ruiz", "marta@example.com", "intermediate", "hyrox", "Madrid",
-    "Vengo del atletismo, aprendiendo a mover hierro."],
-  ["Diego Santos", "diego@example.com", "intermediate", "crossfit", "Alcobendas", ""],
-  ["Ana Molina", "ana@example.com", "beginner", "general", "Madrid",
-    "Empecé hace tres meses y ya no falto un día."],
+  [
+    "Lucía Fernández",
+    "lucia@example.com",
+    "advanced",
+    "hyrox",
+    "Madrid",
+    "Compitiendo en HYROX desde 2024. Objetivo: sub 70 en individual.",
+  ],
+  [
+    "Carlos Ibáñez",
+    "carlos@example.com",
+    "advanced",
+    "crossfit",
+    "Madrid",
+    "Halterofilia y gimnásticos. Buscando el primer muscle-up estricto.",
+  ],
+  [
+    "Marta Ruiz",
+    "marta@example.com",
+    "intermediate",
+    "hyrox",
+    "Madrid",
+    "Vengo del atletismo, aprendiendo a mover hierro.",
+  ],
+  [
+    "Diego Santos",
+    "diego@example.com",
+    "intermediate",
+    "crossfit",
+    "Alcobendas",
+    "",
+  ],
+  [
+    "Ana Molina",
+    "ana@example.com",
+    "beginner",
+    "general",
+    "Madrid",
+    "Empecé hace tres meses y ya no falto un día.",
+  ],
   ["Javier Peña", "javier@example.com", "advanced", "crossfit", "Getafe", ""],
-  ["Sofía Navarro", "sofia@example.com", "intermediate", "general", "Madrid", ""],
+  [
+    "Sofía Navarro",
+    "sofia@example.com",
+    "intermediate",
+    "general",
+    "Madrid",
+    "",
+  ],
   ["Pablo Herrera", "pablo@example.com", "beginner", "hyrox", "Leganés", ""],
 ];
 
@@ -178,7 +228,9 @@ for (const [i, id] of memberIds.slice(0, -2).entries()) {
   await api(`/api/members/${id}/approve`);
   approvedEmails.push(memberEmails[i]);
 }
-console.log(`✓ ${memberIds.length} members (${approvedEmails.length} approved)`);
+console.log(
+  `✓ ${memberIds.length} members (${approvedEmails.length} approved)`,
+);
 
 // One session per approved athlete: everything below is created as them.
 const sessions = new Map<string, string>();
@@ -227,11 +279,16 @@ for (const [, memberEmail, movement, weight] of prs) {
   // logged in rather than whatever name the request claims.
   const session = sessions.get(memberEmail);
   if (!session) continue;
-  const res = await api("/api/prs", {
-    movement,
-    weight,
-    date: daysFromNow(-Math.floor(Math.random() * 120) - 1).slice(0, 10),
-  }, "POST", session);
+  const res = await api(
+    "/api/prs",
+    {
+      movement,
+      weight,
+      date: daysFromNow(-Math.floor(Math.random() * 120) - 1).slice(0, 10),
+    },
+    "POST",
+    session,
+  );
   if (res.ok) prIds.push((await res.json()).id);
 }
 // Leave the last three pending so the admin queue has something in it.
@@ -294,14 +351,21 @@ for (const { scores, ...wod } of wods) {
   for (const [, memberEmail, value, scaled] of scores) {
     const session = sessions.get(memberEmail as string);
     if (!session) continue;
-    const scoreRes = await api(`/api/wods/${created.id}/scores`, {
-      value,
-      scaled,
-    }, "POST", session);
+    const scoreRes = await api(
+      `/api/wods/${created.id}/scores`,
+      {
+        value,
+        scaled,
+      },
+      "POST",
+      session,
+    );
     if (scoreRes.ok) {
       const score = await scoreRes.json();
       // Leave one score pending per WOD for the moderation queue.
-      if (memberEmail !== "ana@example.com" && memberEmail !== "pablo@example.com") {
+      if (
+        memberEmail !== "ana@example.com" && memberEmail !== "pablo@example.com"
+      ) {
         await api(`/api/wod-scores/${score.id}/approve`);
       }
       scoreCount++;

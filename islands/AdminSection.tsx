@@ -64,33 +64,29 @@ export default function AdminSection(props: Props) {
 }
 
 function LoginPanel() {
-  const [passcode, setPasscode] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: Event) => {
     e.preventDefault();
-    if (!passcode) return;
+    if (!email.trim() || !password) return;
     setLoading(true);
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passcode }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       if (res.ok) {
         globalThis.location.reload();
       } else {
         const data = await res.json().catch(() => ({}));
-        // Only a 401 actually means the passcode was wrong. Defaulting to that
-        // message for every failure made a server misconfiguration look like a
-        // typo and sent admins re-entering a passcode that was correct.
         const fallback = res.status >= 500
           ? "Error del servidor. Revisa la configuración (SESSION_SECRET)."
-          : "Passcode incorrecto.";
+          : "Email o contraseña incorrectos.";
         toast(data.error ?? fallback, "error");
-        // Keep what they typed when the server is at fault; there is nothing
-        // to correct.
-        if (res.status < 500) setPasscode("");
+        if (res.status < 500) setPassword("");
       }
     } catch {
       toast("Error de conexión.", "error");
@@ -104,21 +100,32 @@ function LoginPanel() {
       <div class="lock-icon" aria-hidden="true">🔒</div>
       <h2>Zona de administración</h2>
       <p class="muted">
-        Introduce el passcode para moderar inscripciones, PRs, resultados y
-        WODs.
+        Inicia sesión con tu cuenta para moderar inscripciones, PRs, resultados
+        y WODs.
       </p>
       <form class="form admin-login" onSubmit={submit}>
         <input
           class="input"
+          type="email"
+          required
+          autocomplete="username"
+          placeholder="Email de administrador"
+          aria-label="Email de administrador"
+          value={email}
+          onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
+        />
+        <input
+          class="input"
           type="password"
           required
-          placeholder="Admin passcode"
-          aria-label="Admin passcode"
-          value={passcode}
-          onInput={(e) => setPasscode((e.target as HTMLInputElement).value)}
+          autocomplete="current-password"
+          placeholder="Contraseña"
+          aria-label="Contraseña de administrador"
+          value={password}
+          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
         />
         <button class="btn green" type="submit" disabled={loading}>
-          {loading ? "Comprobando…" : "Desbloquear"}
+          {loading ? "Iniciando sesión…" : "Entrar"}
         </button>
       </form>
     </div>
@@ -135,6 +142,7 @@ function ModerationPanel(
   const [scores, setScores] = useState(s0);
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [resultFormOpen, setResultFormOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   const total = members.length + prs.length + events.length + results.length +
     scores.length;
@@ -157,7 +165,13 @@ function ModerationPanel(
         setter((list) => list.filter((x) => x.id !== id));
         toast(successMessage, "success");
       } else {
-        toast("No se pudo completar la acción.", "error");
+        if (res.status === 401 || res.status === 403) {
+          toast("La sesión de administrador ha caducado.", "info");
+          setTimeout(() => globalThis.location.reload(), 250);
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        toast(data.error ?? "No se pudo completar la acción.", "error");
       }
     } catch {
       toast("Error de conexión.", "error");
@@ -165,8 +179,20 @@ function ModerationPanel(
   };
 
   const logout = async () => {
-    await fetch("/api/admin/logout", { method: "POST" });
-    globalThis.location.reload();
+    setLogoutLoading(true);
+    try {
+      const res = await fetch("/api/admin/logout", { method: "POST" });
+      if (res.ok) {
+        globalThis.location.reload();
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      toast(data.error ?? "No se pudo cerrar la sesión.", "error");
+    } catch {
+      toast("Error de conexión.", "error");
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   return (
@@ -198,8 +224,13 @@ function ModerationPanel(
             >
               + Resultado
             </button>
-            <button type="button" class="btn ghost" onClick={logout}>
-              Bloquear
+            <button
+              type="button"
+              class="btn ghost"
+              onClick={logout}
+              disabled={logoutLoading}
+            >
+              {logoutLoading ? "Cerrando…" : "Cerrar sesión"}
             </button>
           </div>
         </div>
@@ -217,11 +248,21 @@ function ModerationPanel(
               label={ev.title}
               sub={new Date(ev.date).toLocaleDateString("es-ES")}
               onApprove={() =>
-                act(`/api/events/${ev.id}/approve`, "POST", ev.id, setEvents,
-                  "Evento aprobado.")}
+                act(
+                  `/api/events/${ev.id}/approve`,
+                  "POST",
+                  ev.id,
+                  setEvents,
+                  "Evento aprobado.",
+                )}
               onReject={() =>
-                act(`/api/events/${ev.id}/delete`, "DELETE", ev.id, setEvents,
-                  "Evento rechazado.")}
+                act(
+                  `/api/events/${ev.id}/delete`,
+                  "DELETE",
+                  ev.id,
+                  setEvents,
+                  "Evento rechazado.",
+                )}
             />
           ))}
         </Queue>
@@ -232,14 +273,27 @@ function ModerationPanel(
               key={pr.id}
               label={pr.memberName}
               sub={`${pr.movement} · ${
-                formatPRValue(pr.weight, pr.metric ?? movementMetric(pr.movement))
+                formatPRValue(
+                  pr.weight,
+                  pr.metric ?? movementMetric(pr.movement),
+                )
               }`}
               onApprove={() =>
-                act(`/api/prs/${pr.id}/approve`, "POST", pr.id, setPRs,
-                  "PR aprobado.")}
+                act(
+                  `/api/prs/${pr.id}/approve`,
+                  "POST",
+                  pr.id,
+                  setPRs,
+                  "PR aprobado.",
+                )}
               onReject={() =>
-                act(`/api/prs/${pr.id}/delete`, "DELETE", pr.id, setPRs,
-                  "PR rechazado.")}
+                act(
+                  `/api/prs/${pr.id}/delete`,
+                  "DELETE",
+                  pr.id,
+                  setPRs,
+                  "PR rechazado.",
+                )}
             />
           ))}
         </Queue>
@@ -253,13 +307,25 @@ function ModerationPanel(
             <PendingRow
               key={s.id}
               label={s.memberName}
-              sub={`${s.wodName} · ${s.display} · ${s.scaled ? "Scaled" : "Rx"}`}
+              sub={`${s.wodName} · ${s.display} · ${
+                s.scaled ? "Scaled" : "Rx"
+              }`}
               onApprove={() =>
-                act(`/api/wod-scores/${s.id}/approve`, "POST", s.id, setScores,
-                  "Score aprobado.")}
+                act(
+                  `/api/wod-scores/${s.id}/approve`,
+                  "POST",
+                  s.id,
+                  setScores,
+                  "Score aprobado.",
+                )}
               onReject={() =>
-                act(`/api/wod-scores/${s.id}/delete`, "DELETE", s.id, setScores,
-                  "Score rechazado.")}
+                act(
+                  `/api/wod-scores/${s.id}/delete`,
+                  "DELETE",
+                  s.id,
+                  setScores,
+                  "Score rechazado.",
+                )}
             />
           ))}
         </Queue>
@@ -273,13 +339,27 @@ function ModerationPanel(
             <PendingRow
               key={r.id}
               label={r.name}
-              sub={formatCalendarDate(r.date, { day: "numeric", month: "short", year: "numeric" })}
+              sub={formatCalendarDate(r.date, {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
               onApprove={() =>
-                act(`/api/results/${r.id}/approve`, "POST", r.id, setResults,
-                  "Resultado aprobado.")}
+                act(
+                  `/api/results/${r.id}/approve`,
+                  "POST",
+                  r.id,
+                  setResults,
+                  "Resultado aprobado.",
+                )}
               onReject={() =>
-                act(`/api/results/${r.id}/delete`, "DELETE", r.id, setResults,
-                  "Resultado rechazado.")}
+                act(
+                  `/api/results/${r.id}/delete`,
+                  "DELETE",
+                  r.id,
+                  setResults,
+                  "Resultado rechazado.",
+                )}
             />
           ))}
         </Queue>
@@ -295,17 +375,29 @@ function ModerationPanel(
               label={mb.name}
               sub={`${mb.email} · ${mb.level} · ${mb.goal}`}
               onApprove={() =>
-                act(`/api/members/${mb.id}/approve`, "POST", mb.id, setMembers,
-                  "Miembro aprobado.")}
+                act(
+                  `/api/members/${mb.id}/approve`,
+                  "POST",
+                  mb.id,
+                  setMembers,
+                  "Miembro aprobado.",
+                )}
               onReject={() =>
-                act(`/api/members/${mb.id}/reject`, "POST", mb.id, setMembers,
-                  "Miembro rechazado.")}
+                act(
+                  `/api/members/${mb.id}/reject`,
+                  "POST",
+                  mb.id,
+                  setMembers,
+                  "Miembro rechazado.",
+                )}
             />
           ))}
         </Queue>
       </div>
 
-      {eventFormOpen && <EventFormModal onClose={() => setEventFormOpen(false)} />}
+      {eventFormOpen && (
+        <EventFormModal onClose={() => setEventFormOpen(false)} />
+      )}
       {resultFormOpen && (
         <ResultFormModal onClose={() => setResultFormOpen(false)} />
       )}
@@ -465,7 +557,9 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
             />
           </label>
           <label class="field">
-            <span>Plazas <em>(opcional)</em></span>
+            <span>
+              Plazas <em>(opcional)</em>
+            </span>
             <input
               class="input"
               type="number"
@@ -570,7 +664,9 @@ function ResultFormModal({ onClose }: { onClose: () => void }) {
           />
         </label>
         <label class="field">
-          <span>Foto <em>(URL, opcional)</em></span>
+          <span>
+            Foto <em>(URL, opcional)</em>
+          </span>
           <input
             class="input"
             type="url"

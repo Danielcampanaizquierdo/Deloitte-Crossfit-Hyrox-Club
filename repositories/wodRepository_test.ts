@@ -3,8 +3,10 @@ import { withKv } from "./test_utils.ts";
 import {
   createWodRepository,
   DuplicateWodScoreError,
+  MemberNotEligibleError,
 } from "./wodRepository.ts";
 import type { CreateWodRequest } from "../types/Wod.ts";
+import { createMemberRepository } from "./memberRepository.ts";
 
 function wodData(overrides: Partial<CreateWodRequest> = {}): CreateWodRequest {
   return {
@@ -90,21 +92,30 @@ Deno.test("stable member id prevents a second score after an email change", asyn
   await withKv(async (kv) => {
     const repo = createWodRepository(kv);
     const wod = await repo.create(wodData());
+    const members = createMemberRepository(kv);
+    const member = await members.create({
+      name: "Athlete",
+      email: "old-score@example.com",
+      level: "advanced",
+      goal: "crossfit",
+      location: "Madrid",
+    });
+    await members.approve(member.id);
 
     const first = await repo.createScore({
       wodId: wod.id,
-      memberId: "mbr-stable-score",
+      memberId: member.id,
       memberName: "Athlete",
       memberEmail: "old-score@example.com",
       value: 201,
     });
-    assertEquals(first?.memberId, "mbr-stable-score");
+    assertEquals(first?.memberId, member.id);
 
     await assertRejects(
       () =>
         repo.createScore({
           wodId: wod.id,
-          memberId: "mbr-stable-score",
+          memberId: member.id,
           memberName: "Athlete",
           memberEmail: "new-score@example.com",
           value: 190,
@@ -214,5 +225,36 @@ Deno.test("rescheduling a WOD keeps a single date index entry", async () => {
       dateEntries.push(entry.value);
     }
     assertEquals(dateEntries, [wod.id]);
+  });
+});
+
+Deno.test("stable-id WOD score requires approval and uses stored attribution", async () => {
+  await withKv(async (kv) => {
+    const repo = createWodRepository(kv);
+    const members = createMemberRepository(kv);
+    const wod = await repo.create(wodData());
+    const member = await members.create({
+      name: "Stored Athlete",
+      email: "stored-score@example.com",
+      level: "advanced",
+      goal: "hyrox",
+      location: "Madrid",
+    });
+    const request = {
+      wodId: wod.id,
+      memberId: member.id,
+      memberName: "Impostor",
+      memberEmail: "impostor@example.com",
+      value: 200,
+    };
+
+    await assertRejects(
+      () => repo.createScore(request),
+      MemberNotEligibleError,
+    );
+    await members.approve(member.id);
+    const score = await repo.createScore(request);
+    assertEquals(score?.memberName, "Stored Athlete");
+    assertEquals(score?.memberEmail, "stored-score@example.com");
   });
 });

@@ -22,11 +22,13 @@
 
 import type { CreateSignupRequest, EventSignup } from "../types/Signup.ts";
 import type { Event } from "../types/Event.ts";
+import type { Member } from "../types/Member.ts";
 import {
   eventKey,
+  memberKey,
   signupEmailKey,
-  signupEventMemberKey,
   signupEventKey,
+  signupEventMemberKey,
   signupKey,
   signupMemberKey,
 } from "./keys.ts";
@@ -68,6 +70,13 @@ export class EventAlreadyStartedError extends Error {
   constructor(eventId: string) {
     super(`Event "${eventId}" has already started`);
     this.name = "EventAlreadyStartedError";
+  }
+}
+
+export class MemberNotEligibleError extends Error {
+  constructor(memberId: string) {
+    super(`Member "${memberId}" is not active and approved`);
+    this.name = "MemberNotEligibleError";
   }
 }
 
@@ -160,22 +169,37 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
     data: CreateSignupRequest,
   ): Promise<EventSignup | null> {
     const id = generateId();
-    const now = new Date();
-    const signup: EventSignup = {
-      id,
-      eventId: data.eventId,
-      memberId: data.memberId,
-      memberName: data.memberName,
-      memberEmail: data.memberEmail,
-      comments: data.comments,
-      signedUpAt: now,
-    };
-    const emailKey = signupEmailKey(data.eventId, data.memberEmail);
     const eventMemberKey = data.memberId
       ? signupEventMemberKey(data.eventId, data.memberId)
       : null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const memberEntry = data.memberId
+        ? await kv.get<Member>(memberKey(data.memberId))
+        : null;
+      if (
+        memberEntry &&
+        (memberEntry.value === null || !memberEntry.value.approved ||
+          memberEntry.value.active === false || memberEntry.value.deletedAt)
+      ) {
+        throw new MemberNotEligibleError(data.memberId!);
+      }
+
+      // When a stable member id exists, all persisted attribution comes from
+      // the checked member record, never from caller-supplied display fields.
+      const memberName = memberEntry?.value?.name ?? data.memberName;
+      const memberEmail = memberEntry?.value?.email ?? data.memberEmail;
+      const signup: EventSignup = {
+        id,
+        eventId: data.eventId,
+        memberId: data.memberId,
+        memberName,
+        memberEmail,
+        comments: data.comments,
+        signedUpAt: new Date(),
+      };
+      const emailKey = signupEmailKey(data.eventId, memberEmail);
+
       const eventEntry = await kv.get<Event>(eventKey(data.eventId));
       if (eventEntry.value === null) return null;
       const event = eventEntry.value;
@@ -191,7 +215,8 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
       // below check()s, so two bookings racing for the last spot cannot both
       // commit: the loser's commit fails, rereads a now-full event, and
       // throws here on the retry.
-      if (event.capacity && event.capacity > 0 &&
+      if (
+        event.capacity && event.capacity > 0 &&
         event.attendees >= event.capacity
       ) {
         throw new EventFullError(data.eventId);
@@ -211,6 +236,8 @@ export function createSignupRepository(kv: Deno.Kv): SignupRepository {
           attendees: event.attendees + 1,
           updatedAt: new Date(),
         });
+
+      if (memberEntry) atomic.check(memberEntry);
 
       if (data.memberId) {
         atomic

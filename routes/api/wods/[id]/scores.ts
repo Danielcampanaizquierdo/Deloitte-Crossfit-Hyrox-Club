@@ -2,13 +2,15 @@ import { Handlers } from "$fresh/server.ts";
 import { wodService } from "../../../../services/wodService.ts";
 import { parseTimeToSeconds } from "../../../../lib/movements.ts";
 import { State } from "../../../../types/State.ts";
-import {
-  toPublicWodScore,
-  toPublicWodScores,
-} from "../../../../types/Wod.ts";
+import { toPublicWodScore, toPublicWodScores } from "../../../../types/Wod.ts";
+import { MemberNotEligibleError } from "../../../../repositories/wodRepository.ts";
 
 export const handler: Handlers<unknown, State> = {
   async GET(_req, ctx) {
+    const wod = await wodService.getById(ctx.params.id);
+    if (!wod || !wod.approved) {
+      return Response.json({ error: "WOD no encontrado" }, { status: 404 });
+    }
     const scores = await wodService.getScoresByWod(ctx.params.id);
     return Response.json(toPublicWodScores(scores.filter((s) => s.approved)));
   },
@@ -80,6 +82,12 @@ export const handler: Handlers<unknown, State> = {
       }
       return Response.json(toPublicWodScore(score), { status: 201 });
     } catch (err) {
+      if (err instanceof MemberNotEligibleError) {
+        return Response.json(
+          { error: "Tu cuenta ya no puede registrar scores" },
+          { status: 403 },
+        );
+      }
       if (err instanceof Error && err.message.includes("Already scored")) {
         return Response.json(
           { error: "Ya has registrado tu score en este WOD" },

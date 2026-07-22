@@ -1,16 +1,23 @@
 # API Documentation
 
 ## Base URL
+
 `http://localhost:8000/api`
 
 ## Authentication
-Actualmente no hay autenticación para la API (fase 4). El passcode del admin es solo para UI.
+
+La API usa cookies de sesión `HttpOnly`. Las acciones de miembro requieren
+`member_session`; creación/moderación administrativa requiere `admin_session`.
+Ambas se emiten únicamente mediante los endpoints de login y están firmadas,
+ligadas a su tipo, tienen caducidad y necesitan un `sid` activo en Deno KV.
+Logout, cambio de contraseña o desactivación revocan la sesión en el servidor.
 
 ## Response Format
 
 Todas las respuestas son JSON.
 
 ### Success Response (2xx)
+
 ```json
 {
   "id": "...",
@@ -20,6 +27,7 @@ Todas las respuestas son JSON.
 ```
 
 ### Error Response (4xx/5xx)
+
 ```json
 {
   "error": "Descripción del error"
@@ -31,6 +39,7 @@ Todas las respuestas son JSON.
 ### Events
 
 #### GET /events
+
 Obtener todos los eventos.
 
 ```bash
@@ -38,6 +47,7 @@ curl http://localhost:8000/api/events
 ```
 
 **Response (200)**:
+
 ```json
 [
   {
@@ -54,6 +64,7 @@ curl http://localhost:8000/api/events
 ```
 
 #### GET /events/upcoming
+
 Obtener próximos eventos (ordenados por fecha).
 
 ```bash
@@ -61,6 +72,7 @@ curl http://localhost:8000/api/events/upcoming
 ```
 
 #### GET /events/{id}
+
 Obtener evento específico.
 
 ```bash
@@ -68,6 +80,7 @@ curl http://localhost:8000/api/events/evt-001
 ```
 
 #### POST /events
+
 Crear nuevo evento.
 
 ```bash
@@ -84,6 +97,7 @@ curl -X POST http://localhost:8000/api/events \
 **Required fields**: title, description, date, location
 
 **Response (201)**:
+
 ```json
 {
   "id": "evt-1720000000000",
@@ -93,6 +107,7 @@ curl -X POST http://localhost:8000/api/events \
 ```
 
 #### PUT /events/{id}
+
 Actualizar evento.
 
 ```bash
@@ -102,6 +117,7 @@ curl -X PUT http://localhost:8000/api/events/evt-001 \
 ```
 
 #### DELETE /events/{id}
+
 Eliminar evento.
 
 ```bash
@@ -113,6 +129,7 @@ curl -X DELETE http://localhost:8000/api/events/evt-001
 ### Members
 
 #### GET /members
+
 Obtener miembros aprobados. Soporta búsqueda y filtros.
 
 ```bash
@@ -133,6 +150,7 @@ curl "http://localhost:8000/api/members?search=demo&level=intermediate&goal=hyro
 ```
 
 #### GET /members/{id}
+
 Obtener miembro específico.
 
 ```bash
@@ -140,6 +158,7 @@ curl http://localhost:8000/api/members/mbr-001
 ```
 
 #### GET /members/pending
+
 Obtener miembros pendientes de aprobar (admin).
 
 ```bash
@@ -147,9 +166,11 @@ curl http://localhost:8000/api/members/pending
 ```
 
 #### POST /members
+
 Retirado (**410**). Usar `POST /auth/register`, que exige contraseña.
 
 #### PUT /members/{id}
+
 Actualizar miembro.
 
 ```bash
@@ -159,6 +180,7 @@ curl -X PUT http://localhost:8000/api/members/mbr-001 \
 ```
 
 #### DELETE /members/{id}
+
 Eliminar miembro.
 
 ```bash
@@ -170,6 +192,7 @@ curl -X DELETE http://localhost:8000/api/members/mbr-001
 ### PRs (Personal Records)
 
 #### GET /prs
+
 Obtener PRs aprobados. Filtrable por movimiento.
 
 ```bash
@@ -180,9 +203,11 @@ curl http://localhost:8000/api/prs
 curl "http://localhost:8000/api/prs?movement=clean_and_jerk"
 ```
 
-**Valid movements**: clean_and_jerk, snatch, deadlift, squat, bench_press, back_squat, front_squat
+**Valid movements**: clean_and_jerk, snatch, deadlift, squat, bench_press,
+back_squat, front_squat
 
 #### GET /prs/{id}
+
 Obtener PR específico.
 
 ```bash
@@ -190,6 +215,7 @@ curl http://localhost:8000/api/prs/pr-001
 ```
 
 #### GET /prs/pending
+
 Obtener PRs pendientes de aprobar (admin).
 
 ```bash
@@ -197,6 +223,7 @@ curl http://localhost:8000/api/prs/pending
 ```
 
 #### POST /prs
+
 Crear nuevo PR.
 
 ```bash
@@ -213,6 +240,7 @@ curl -X POST http://localhost:8000/api/prs \
 **Required fields**: memberId, movement, weight, date
 
 **Response (201)**:
+
 ```json
 {
   "id": "pr-1720000000000",
@@ -226,6 +254,7 @@ curl -X POST http://localhost:8000/api/prs \
 ```
 
 #### DELETE /prs/{id}
+
 Eliminar PR.
 
 ```bash
@@ -237,6 +266,7 @@ curl -X DELETE http://localhost:8000/api/prs/pr-001
 ### Results
 
 #### GET /results
+
 Obtener resultados aprobados.
 
 ```bash
@@ -244,6 +274,7 @@ curl http://localhost:8000/api/results
 ```
 
 #### GET /results/{id}
+
 Obtener resultado específico.
 
 ```bash
@@ -251,6 +282,7 @@ curl http://localhost:8000/api/results/res-001
 ```
 
 #### GET /results/pending
+
 Obtener resultados pendientes (admin).
 
 ```bash
@@ -258,6 +290,7 @@ curl http://localhost:8000/api/results/pending
 ```
 
 #### POST /results
+
 Crear nuevo resultado.
 
 ```bash
@@ -277,6 +310,7 @@ curl -X POST http://localhost:8000/api/results \
 **Required fields**: title, date, description, results
 
 **Response (201)**:
+
 ```json
 {
   "id": "res-1720000000000",
@@ -287,6 +321,7 @@ curl -X POST http://localhost:8000/api/results \
 ```
 
 #### DELETE /results/{id}
+
 Eliminar resultado.
 
 ```bash
@@ -298,7 +333,9 @@ curl -X DELETE http://localhost:8000/api/results/res-001
 ### Signups
 
 #### GET /signups
-Obtener todos los signups. Filtrable por evento.
+
+Obtener todas las reservas. Requiere sesión admin y se puede filtrar por
+`eventId`.
 
 ```bash
 # Todos
@@ -309,43 +346,33 @@ curl "http://localhost:8000/api/signups?eventId=evt-001"
 ```
 
 #### GET /signups/{id}
-Obtener signup específico.
+
+Obtener una reserva concreta. Solo su titular (por `memberId` estable) o un
+admin puede leerla.
 
 ```bash
 curl http://localhost:8000/api/signups/signup-001
 ```
 
 #### POST /signups
-Crear nuevo signup (apuntarse a evento).
+
+Retirado (**410**). Para reservar se usa la identidad de la sesión:
 
 ```bash
-curl -X POST http://localhost:8000/api/signups \
+curl -X POST http://localhost:8000/api/events/evt-001/signup \
   -H "Content-Type: application/json" \
-  -d '{
-    "eventId": "evt-001",
-    "memberName": "John Doe",
-    "memberEmail": "john@example.com",
-    "notes": "Excited to attend!"
-  }'
+  -b cookies.txt \
+  -d '{"comments":"Excited to attend!"}'
 ```
 
-**Required fields**: eventId, memberName, memberEmail
-
-**Response (201)**:
-```json
-{
-  "id": "signup-1720000000000",
-  "eventId": "evt-001",
-  "memberName": "John Doe",
-  ...
-}
-```
-
-**Nota**: No se puede hacer una reserva duplicada para el mismo `memberId` y
-evento, aunque el miembro cambie su email.
+El servidor ignora cualquier identidad enviada por el cliente y toma ID, nombre
+y email del miembro autenticado. No se puede duplicar la reserva aunque el
+miembro cambie su email.
 
 #### DELETE /signups/{id}
-Cancelar signup.
+
+Cancelar una reserva propia o, con sesión admin, cualquier reserva. Los
+registros históricos sin `memberId` son administrables solo por un admin.
 
 ```bash
 curl -X DELETE http://localhost:8000/api/signups/signup-001
@@ -356,6 +383,7 @@ curl -X DELETE http://localhost:8000/api/signups/signup-001
 ### Admin - Approvals
 
 #### POST /admin/members/{id}/approve
+
 Aprobar miembro pendiente.
 
 ```bash
@@ -363,6 +391,7 @@ curl -X POST http://localhost:8000/api/admin/members/mbr-003/approve
 ```
 
 **Response (200)**:
+
 ```json
 {
   "message": "Member approved",
@@ -371,6 +400,7 @@ curl -X POST http://localhost:8000/api/admin/members/mbr-003/approve
 ```
 
 #### POST /admin/prs/{id}/approve
+
 Aprobar PR pendiente.
 
 ```bash
@@ -378,6 +408,7 @@ curl -X POST http://localhost:8000/api/admin/prs/pr-001/approve
 ```
 
 #### POST /admin/results/{id}/approve
+
 Aprobar resultado pendiente.
 
 ```bash
@@ -389,6 +420,7 @@ curl -X POST http://localhost:8000/api/admin/results/res-001/approve
 ### WODs
 
 #### GET /wods
+
 Tablón público: WODs aprobados (más recientes primero), cada uno con sus scores
 aprobados ya ordenados según su `scoreType` (Rx antes que scaled; los tiempos de
 menor a mayor, el resto de mayor a menor).
@@ -397,25 +429,29 @@ menor a mayor, el resto de mayor a menor).
 curl http://localhost:8000/api/wods
 ```
 
-#### POST /wods *(admin)*
+#### POST /wods _(admin)_
+
 Publica un WOD. Se aprueba automáticamente, igual que eventos y resultados.
 
-| Campo | Tipo | Obligatorio |
-|---|---|---|
-| `name` | string | sí |
-| `date` | string (ISO o `YYYY-MM-DD`) | sí |
-| `format` | `amrap`\|`for_time`\|`emom`\|`strength`\|`hyrox` | sí |
-| `description` | string (se respetan los saltos de línea) | sí |
-| `scoreType` | `reps`\|`rounds`\|`time`\|`weight` | sí |
-| `timeCapMinutes` | number | no |
+| Campo            | Tipo                                             | Obligatorio |
+| ---------------- | ------------------------------------------------ | ----------- |
+| `name`           | string                                           | sí          |
+| `date`           | string (ISO o `YYYY-MM-DD`)                      | sí          |
+| `format`         | `amrap`\|`for_time`\|`emom`\|`strength`\|`hyrox` | sí          |
+| `description`    | string (se respetan los saltos de línea)         | sí          |
+| `scoreType`      | `reps`\|`rounds`\|`time`\|`weight`               | sí          |
+| `timeCapMinutes` | number                                           | no          |
 
-#### DELETE /wods/{id}/delete *(admin)*
+#### DELETE /wods/{id}/delete _(admin)_
+
 Borra el WOD **y todos sus scores**, para no dejar scores huérfanos.
 
 #### GET /wods/{id}/scores
+
 Scores aprobados de ese WOD.
 
 #### POST /wods/{id}/scores
+
 Registra un score con la identidad de la sesión. Queda pendiente hasta que un
 admin lo apruebe. Un mismo `memberId` solo puede registrar un score por WOD
 (**409** si repite), aunque cambie su email.
@@ -429,19 +465,23 @@ curl -X POST http://localhost:8000/api/wods/wod-123/scores \
   -d '{"value":"12:40","scaled":false}'
 ```
 
-#### POST /wod-scores/{id}/approve *(admin)*
-#### DELETE /wod-scores/{id}/delete *(admin)*
+#### POST /wod-scores/{id}/approve _(admin)_
+
+#### DELETE /wod-scores/{id}/delete _(admin)_
+
 Aprueba o descarta un score pendiente. Borrarlo libera al atleta para volver a
 enviarlo corregido.
 
 ### Reservas
 
 #### GET /events/{id}/attendees
+
 Lista de asistentes en orden de reserva. Para usuarios no admin devuelve solo
-`memberName` y `signedUpAt`: los ids internos, emails y comentarios se omiten. Un admin
-recibe el registro completo.
+`memberName` y `signedUpAt`: los ids internos, emails y comentarios se omiten.
+Un admin recibe el registro completo.
 
 #### POST /events/{id}/cancel
+
 Cancela la reserva del `memberId` autenticado. Libera la plaza y decrementa el
 contador de forma atómica.
 
@@ -454,9 +494,9 @@ curl -X POST http://localhost:8000/api/events/evt-123/cancel \
 
 ### Aforo de eventos
 
-`POST /events` acepta `capacity` (opcional). Sin `capacity`, o con `capacity: 0`,
-el evento es ilimitado — que es como se comporta todo evento creado antes de que
-existiera este campo.
+`POST /events` acepta `capacity` (opcional). Sin `capacity`, o con
+`capacity: 0`, el evento es ilimitado — que es como se comporta todo evento
+creado antes de que existiera este campo.
 
 Cuando el evento está lleno, `POST /events/{id}/signup` responde **409** con
 `{"error":"Este evento ya está completo"}`. La comprobación ocurre dentro de la
@@ -481,32 +521,44 @@ score en nombre de otro — y cancelar la reserva ajena sabiendo su email. Ahora
 las cuentas tienen contraseña y las acciones van firmadas por la sesión.
 
 #### POST /auth/register
+
 Crea una cuenta. Requiere `password` (mínimo 8 caracteres), que se almacena como
 hash PBKDF2-SHA256 con salt propio. La cuenta queda **pendiente de aprobación**;
 no se emite sesión.
 
 #### POST /auth/login
-`{ email, password }`. Devuelve **401** con el mismo mensaje tanto si el email no
-existe como si la contraseña es incorrecta, para no revelar qué direcciones
+
+`{ email, password }`. Devuelve **401** con el mismo mensaje tanto si el email
+no existe como si la contraseña es incorrecta, para no revelar qué direcciones
 están registradas. Devuelve **403** si la cuenta aún no está aprobada. Con éxito
 emite una cookie `member_session` (HttpOnly, SameSite=Lax, `Secure` en
-producción). La sesión contiene tipo, id, emisión y caducidad firmados; un token
-de miembro no puede reutilizarse como sesión admin.
+producción). La sesión contiene tipo, id, emisión, `sid` y caducidad firmados;
+además, el `sid` debe seguir activo en KV. Un token de miembro no puede
+reutilizarse como sesión admin.
 
 #### POST /auth/logout
-Cierra la sesión del miembro.
+
+Cierra la sesión del miembro y revoca su `sid` en KV; una copia anterior de la
+cookie deja de ser válida inmediatamente.
+
+#### POST /auth/change-password
+
+Requiere sesión y `{ currentPassword, newPassword }`. Verifica la contraseña
+actual, actualiza el hash, revoca **todas** las sesiones anteriores y entrega
+una cookie nueva al navegador actual.
 
 #### GET /auth/me
+
 Devuelve `{ member }` con la sesión actual, o `{ member: null }`.
 
 ### Acciones que ahora exigen sesión
 
-| Acción | Endpoint |
-|---|---|
-| Reservar plaza | `POST /events/{id}/signup` |
-| Cancelar reserva | `POST /events/{id}/cancel` |
-| Registrar PR | `POST /prs` |
-| Registrar score de WOD | `POST /wods/{id}/scores` |
+| Acción                 | Endpoint                   |
+| ---------------------- | -------------------------- |
+| Reservar plaza         | `POST /events/{id}/signup` |
+| Cancelar reserva       | `POST /events/{id}/cancel` |
+| Registrar PR           | `POST /prs`                |
+| Registrar score de WOD | `POST /wods/{id}/scores`   |
 
 Todas responden **401** sin sesión. **La identidad se toma siempre de la sesión,
 nunca del cuerpo de la petición**: enviar `memberName`/`memberEmail` no tiene
@@ -532,6 +584,28 @@ requieren ser ese miembro o un admin, y sólo se aceptan campos concretos —
 
 Ninguna respuesta incluye `passwordHash` ni `passwordSalt`.
 
+## Autenticación administrativa
+
+El passcode compartido fue sustituido por cuentas individuales persistidas en
+KV. `POST /admin/login` recibe `{ email, password }`, aplica rate limit y emite
+una sesión ligada al ID de un admin activo. `POST /admin/logout` la revoca en el
+servidor. El primer `superadmin` se crea de forma idempotente desde
+`INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_NAME` e `INITIAL_ADMIN_PASSWORD`; una vez
+existe cualquier admin, cambiar esas variables no aprovisiona otro superadmin.
+
+Las sesiones usan una generación revocable por cuenta. Cambiar la contraseña,
+desactivar o eliminar una cuenta invalida atómicamente todas sus sesiones; una
+autenticación concurrente con credenciales antiguas tampoco puede emitir una
+sesión después del cambio. Login y registro usan la dirección directa del socket
+para sus límites. `TRUST_PROXY_HEADER` sólo debe seleccionar `cf-connecting-ip`,
+`x-real-ip` o `x-forwarded-for` cuando un proxy de confianza la sobrescribe.
+Cambio de contraseña y autoeliminación limitan además los intentos de
+reautenticación por miembro.
+
+Las mutaciones `/api/*` de navegador validan `Origin`/Fetch Metadata y las
+respuestas que varían por cookie usan `Vary: Cookie`; las autenticadas son
+`private, no-store`.
+
 ## Status Codes
 
 - **200 OK** - Éxito
@@ -545,6 +619,7 @@ Ninguna respuesta incluye `passwordHash` ni `passwordSalt`.
 ## Error Examples
 
 ### Member not found
+
 ```json
 {
   "error": "Member not found"
@@ -552,6 +627,7 @@ Ninguna respuesta incluye `passwordHash` ni `passwordSalt`.
 ```
 
 ### Validation error
+
 ```json
 {
   "error": "Invalid member data"
@@ -559,6 +635,7 @@ Ninguna respuesta incluye `passwordHash` ni `passwordSalt`.
 ```
 
 ### Duplicate signup
+
 ```json
 {
   "error": "Already signed up for this event"

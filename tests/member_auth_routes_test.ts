@@ -12,6 +12,7 @@ import type { Member } from "../types/Member.ts";
 import { handler as register } from "../routes/api/auth/register.ts";
 import { handler as login } from "../routes/api/auth/login.ts";
 import { handler as logout } from "../routes/api/auth/logout.ts";
+import { handler as changePassword } from "../routes/api/auth/change-password.ts";
 import { handler as appMiddleware } from "../routes/_middleware.ts";
 import { memberService } from "../services/memberService.ts";
 import { verifyMemberSession } from "../lib/session.ts";
@@ -20,10 +21,21 @@ import { handler as pendingResults } from "../routes/api/results/pending.ts";
 import { toPublicPR } from "../types/PR.ts";
 import { toPublicWodScore } from "../types/Wod.ts";
 import { prService } from "../services/prService.ts";
+import { hashPassword } from "../lib/password.ts";
+
+const testAddressHex = crypto.randomUUID().replaceAll("-", "").slice(0, 16);
+const testRemoteAddress = {
+  transport: "tcp",
+  hostname: `2001:db8:${testAddressHex.slice(0, 4)}:${
+    testAddressHex.slice(4, 8)
+  }:${testAddressHex.slice(8, 12)}:${testAddressHex.slice(12)}`,
+  port: 12345,
+};
 
 const anonymous = {
   params: { id: "evt-1" },
   state: { isAdmin: false, member: null },
+  remoteAddr: testRemoteAddress,
 };
 
 Deno.env.set("SESSION_SECRET", "test-secret-at-least-32-characters-long!!");
@@ -31,7 +43,10 @@ Deno.env.set("SESSION_SECRET", "test-secret-at-least-32-characters-long!!");
 function jsonRequest(body: unknown = {}): Request {
   return new Request("http://localhost/x", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-real-ip": `member-test-${crypto.randomUUID()}`,
+    },
     body: JSON.stringify(body),
   });
 }
@@ -206,14 +221,53 @@ Deno.test("register, approval, login, middleware session, and logout work end to
     assertEquals(prBody.metric, "weight");
     assertEquals("memberEmail" in prBody, false);
 
+    const changed = await changePassword.POST!(
+      jsonRequest({
+        currentPassword: "a-strong-test-password",
+        newPassword: "a-new-strong-test-password",
+      }),
+      {
+        params: {},
+        state: { isAdmin: false, admin: null, member: approvedMember },
+      } as never,
+    );
+    assertEquals(changed.status, 200);
+    assertEquals(await verifyMemberSession(requestCookie), null);
+    const replacementCookie = changed.headers.get("set-cookie")!.split(";")[0];
+    assertEquals(await verifyMemberSession(replacementCookie), memberId);
+
+    const oldPasswordLogin = await login.POST!(
+      jsonRequest({ email, password: "a-strong-test-password" }),
+      anonymous as never,
+    );
+    assertEquals(oldPasswordLogin.status, 401);
+    const newPasswordLogin = await login.POST!(
+      jsonRequest({ email, password: "a-new-strong-test-password" }),
+      anonymous as never,
+    );
+    assertEquals(newPasswordLogin.status, 200);
+    const newestCookie =
+      newPasswordLogin.headers.get("set-cookie")!.split(";")[0];
+
     const loggedOut = await logout.POST!(
-      new Request("http://localhost/api/auth/logout", { method: "POST" }),
+      new Request("http://localhost/api/auth/logout", {
+        method: "POST",
+        headers: { cookie: newestCookie },
+      }),
       anonymous as never,
     );
     assertEquals(loggedOut.status, 200);
+    assertEquals(await verifyMemberSession(newestCookie), null);
     assertEquals(
       loggedOut.headers.get("set-cookie")?.includes("Max-Age=0"),
       true,
+    );
+    await logout.POST!(
+      new Request("http://localhost/api/auth/logout", {
+        method: "POST",
+        headers: { cookie: replacementCookie },
+      }),
+      anonymous as never,
     );
   } finally {
     if (prId) await prService.delete(prId);
@@ -270,6 +324,95 @@ Deno.test("editing a member requires being that member or an admin", async () =>
   assertEquals(anon.status, 403);
 });
 
+Deno.test("self-deleting an account requires password reauthentication", async () => {
+  const context = {
+    params: { id: "mbr-self-delete" },
+    state: {
+      isAdmin: false,
+      admin: null,
+      member: {
+        id: "mbr-self-delete",
+        email: "self@example.com",
+      } as Member,
+    },
+  };
+  const missing = await memberById.DELETE!(
+    new Request("http://localhost/api/members/mbr-self-delete", {
+      method: "DELETE",
+    }),
+    context as never,
+  );
+  assertEquals(missing.status, 400);
+
+  const wrong = await memberById.DELETE!(
+    new Request("http://localhost/api/members/mbr-self-delete", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword: "wrong-password" }),
+    }),
+    context as never,
+  );
+  assertEquals(wrong.status, 401);
+});
+
+Deno.test("sensitive password reauthentication is rate-limited per member", async () => {
+  const password = "a-strong-rate-limit-password";
+  const record = await hashPassword(password);
+  const member = await memberService.create({
+    name: "Rate Limited Athlete",
+    email: `reauth-${crypto.randomUUID()}@example.com`,
+    level: "beginner",
+    goal: "general",
+    location: "Madrid",
+    passwordHash: record.hash,
+    passwordSalt: record.salt,
+  });
+  await memberService.approve(member.id);
+  const approved = await memberService.getById(member.id);
+  try {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const response = await changePassword.POST!(
+        jsonRequest({
+          currentPassword: "wrong-password",
+          newPassword: "another-strong-password",
+        }),
+        { state: { isAdmin: false, admin: null, member: approved } } as never,
+      );
+      assertEquals(response.status, 401);
+    }
+    const limited = await changePassword.POST!(
+      jsonRequest({
+        currentPassword: "wrong-password",
+        newPassword: "another-strong-password",
+      }),
+      { state: { isAdmin: false, admin: null, member: approved } } as never,
+    );
+    assertEquals(limited.status, 429);
+    assertEquals(Number(limited.headers.get("retry-after")) > 0, true);
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const response = await memberById.DELETE!(
+        jsonRequest({ currentPassword: "wrong-password" }),
+        {
+          params: { id: member.id },
+          state: { isAdmin: false, admin: null, member: approved },
+        } as never,
+      );
+      assertEquals(response.status, 401);
+    }
+    const deleteLimited = await memberById.DELETE!(
+      jsonRequest({ currentPassword: "wrong-password" }),
+      {
+        params: { id: member.id },
+        state: { isAdmin: false, admin: null, member: approved },
+      } as never,
+    );
+    assertEquals(deleteLimited.status, 429);
+  } finally {
+    await memberService.delete(member.id);
+  }
+});
+
 Deno.test("a member cannot approve themselves", async () => {
   // Self-edit is allowed, but `approved` is a moderation decision.
   const self = {
@@ -283,9 +426,8 @@ Deno.test("a member cannot approve themselves", async () => {
     jsonRequest({ approved: true, passwordHash: "injected", name: "New Name" }),
     self as never,
   );
-  // 404 because this id does not exist in the test KV — the point is that it
-  // got past authorization without carrying approved/passwordHash through.
-  assertEquals(res.status, 404);
+  // Sensitive and unsupported fields are rejected before any write.
+  assertEquals(res.status, 400);
 });
 
 Deno.test("editing and deleting an event is admin-only", async () => {

@@ -12,12 +12,12 @@ export const handler: Handlers<unknown, State> = {
       );
     }
 
-    // Ownership is the stable member id from the session. Email is used only
-    // to find bookings written before accounts carried an id.
+    // Ownership is the stable member id from the session. Legacy bookings
+    // without a memberId are admin-managed: email is mutable and is not an
+    // authentication credential.
     const cancelled = await signupService.cancelForMember(
       ctx.params.id,
       member.id,
-      member.email,
     );
     if (!cancelled) {
       return Response.json(

@@ -1,10 +1,11 @@
-import { EventSignup, CreateSignupRequest } from "../types/Signup.ts";
+import { CreateSignupRequest, EventSignup } from "../types/Signup.ts";
 import {
   createSignupRepository,
   DuplicateSignupError,
   EventAlreadyStartedError,
   EventFullError,
   EventNotPublishedError,
+  MemberNotEligibleError,
   SignupRepository,
 } from "../repositories/signupRepository.ts";
 import { kv } from "../lib/kv.ts";
@@ -67,23 +68,21 @@ export function createSignupService(repo: SignupRepository) {
         if (err instanceof EventAlreadyStartedError) {
           throw new Error("Event has already started");
         }
+        if (err instanceof MemberNotEligibleError) {
+          throw new Error("Member is not eligible");
+        }
         throw err;
       }
     },
 
-    /** Cancels the session holder's booking by stable member id. The email
-     * fallback is restricted to records created before member sessions stored
-     * an owner id. */
+    /** Cancels the session holder's booking by stable member id. Legacy
+     * records without memberId are deliberately admin-only. */
     async cancelForMember(
       eventId: string,
       memberId: string,
-      legacyEmail: string,
+      _legacyEmail?: string,
     ): Promise<boolean> {
-      let signup = await repo.getByEventMember(eventId, memberId);
-      if (!signup) {
-        const legacy = await repo.getByEventEmail(eventId, legacyEmail);
-        if (legacy && !legacy.memberId) signup = legacy;
-      }
+      const signup = await repo.getByEventMember(eventId, memberId);
       if (!signup) return false;
       return repo.delete(signup.id);
     },
@@ -100,4 +99,6 @@ export function createSignupService(repo: SignupRepository) {
 
 // Production singleton: binds to the app-lifetime KV connection once at
 // module load. Deno/Fresh support top-level await in ES modules.
-export const signupService = createSignupService(createSignupRepository(await kv));
+export const signupService = createSignupService(
+  createSignupRepository(await kv),
+);

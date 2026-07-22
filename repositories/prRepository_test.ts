@@ -1,6 +1,7 @@
-import { assert, assertEquals } from "std/assert/mod.ts";
+import { assert, assertEquals, assertRejects } from "std/assert/mod.ts";
 import { withKv } from "./test_utils.ts";
-import { createPrRepository } from "./prRepository.ts";
+import { createPrRepository, MemberNotEligibleError } from "./prRepository.ts";
+import { createMemberRepository } from "./memberRepository.ts";
 import type { PR } from "../types/PR.ts";
 
 Deno.test("PR approval changes visibility between pending and approved indexes", async () => {
@@ -76,9 +77,26 @@ Deno.test("listByMovement returns only approved PRs for its movement", async () 
 Deno.test("listByMemberId uses the member index", async () => {
   await withKv(async (kv) => {
     const repo = createPrRepository(kv);
+    const members = createMemberRepository(kv);
+    const memberOne = await members.create({
+      name: "Athlete One",
+      email: "one@example.com",
+      level: "beginner",
+      goal: "crossfit",
+      location: "Madrid",
+    });
+    const memberTwo = await members.create({
+      name: "Athlete Two",
+      email: "two@example.com",
+      level: "beginner",
+      goal: "crossfit",
+      location: "Madrid",
+    });
+    await members.approve(memberOne.id);
+    await members.approve(memberTwo.id);
 
     const memberOnePr = await repo.create({
-      memberId: "mbr-1",
+      memberId: memberOne.id,
       memberName: "Athlete One",
       memberEmail: "one@example.com",
       movement: "Deadlift",
@@ -86,7 +104,7 @@ Deno.test("listByMemberId uses the member index", async () => {
       date: new Date().toISOString(),
     });
     await repo.create({
-      memberId: "mbr-2",
+      memberId: memberTwo.id,
       memberName: "Athlete Two",
       memberEmail: "two@example.com",
       movement: "Squat",
@@ -94,7 +112,7 @@ Deno.test("listByMemberId uses the member index", async () => {
       date: new Date().toISOString(),
     });
 
-    const memberOnePrs = await repo.listByMemberId("mbr-1");
+    const memberOnePrs = await repo.listByMemberId(memberOne.id);
     assertEquals(memberOnePrs.length, 1);
     assertEquals(memberOnePrs[0].id, memberOnePr.id);
   });
@@ -103,8 +121,17 @@ Deno.test("listByMemberId uses the member index", async () => {
 Deno.test("deleting a PR removes it from primary, approval, movement, and member indexes", async () => {
   await withKv(async (kv) => {
     const repo = createPrRepository(kv);
+    const members = createMemberRepository(kv);
+    const member = await members.create({
+      name: "Athlete One",
+      email: "one@example.com",
+      level: "beginner",
+      goal: "crossfit",
+      location: "Madrid",
+    });
+    await members.approve(member.id);
     const pr = await repo.create({
-      memberId: "mbr-1",
+      memberId: member.id,
       memberName: "Athlete One",
       memberEmail: "one@example.com",
       movement: "Deadlift",
@@ -119,6 +146,34 @@ Deno.test("deleting a PR removes it from primary, approval, movement, and member
     assertEquals(await repo.get(pr.id), null);
     assertEquals(await repo.listApproved(), []);
     assertEquals(await repo.listByMovement("Deadlift"), []);
-    assertEquals(await repo.listByMemberId("mbr-1"), []);
+    assertEquals(await repo.listByMemberId(member.id), []);
+  });
+});
+
+Deno.test("stable-id PR creation requires approval and ignores supplied attribution", async () => {
+  await withKv(async (kv) => {
+    const repo = createPrRepository(kv);
+    const members = createMemberRepository(kv);
+    const member = await members.create({
+      name: "Stored Athlete",
+      email: "stored-pr@example.com",
+      level: "advanced",
+      goal: "crossfit",
+      location: "Madrid",
+    });
+    const request = {
+      memberId: member.id,
+      memberName: "Impostor",
+      memberEmail: "impostor@example.com",
+      movement: "Deadlift",
+      weight: 180,
+      date: new Date().toISOString(),
+    };
+
+    await assertRejects(() => repo.create(request), MemberNotEligibleError);
+    await members.approve(member.id);
+    const pr = await repo.create(request);
+    assertEquals(pr.memberName, "Stored Athlete");
+    assertEquals(pr.memberEmail, "stored-pr@example.com");
   });
 });

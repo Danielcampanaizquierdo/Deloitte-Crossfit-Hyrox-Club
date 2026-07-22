@@ -15,7 +15,9 @@ import type {
   Wod,
   WodScore,
 } from "../types/Wod.ts";
+import type { Member } from "../types/Member.ts";
 import {
+  memberKey as memberRecordKey,
   wodApprovalKey,
   wodDateKey,
   wodKey,
@@ -32,6 +34,13 @@ export class DuplicateWodScoreError extends Error {
   constructor(wodId: string, email: string) {
     super(`A score for WOD "${wodId}" with email "${email}" already exists`);
     this.name = "DuplicateWodScoreError";
+  }
+}
+
+export class MemberNotEligibleError extends Error {
+  constructor(memberId: string) {
+    super(`Member "${memberId}" is not active and approved`);
+    this.name = "MemberNotEligibleError";
   }
 }
 
@@ -253,24 +262,35 @@ export function createWodRepository(kv: Deno.Kv): WodRepository {
     data: CreateWodScoreRequest,
   ): Promise<WodScore | null> {
     const id = generateScoreId();
-    const score: WodScore = {
-      id,
-      wodId: data.wodId,
-      memberId: data.memberId,
-      memberName: data.memberName,
-      memberEmail: data.memberEmail,
-      value: data.value,
-      scaled: data.scaled ?? false,
-      notes: data.notes,
-      approved: false,
-      createdAt: new Date(),
-    };
-    const emailKey = wodScoreEmailKey(data.wodId, data.memberEmail);
     const memberKey = data.memberId
       ? wodScoreMemberKey(data.wodId, data.memberId)
       : null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const memberEntry = data.memberId
+        ? await kv.get<Member>(memberRecordKey(data.memberId))
+        : null;
+      if (
+        memberEntry &&
+        (memberEntry.value === null || !memberEntry.value.approved ||
+          memberEntry.value.active === false || memberEntry.value.deletedAt)
+      ) {
+        throw new MemberNotEligibleError(data.memberId!);
+      }
+
+      const score: WodScore = {
+        id,
+        wodId: data.wodId,
+        memberId: data.memberId,
+        memberName: memberEntry?.value?.name ?? data.memberName,
+        memberEmail: memberEntry?.value?.email ?? data.memberEmail,
+        value: data.value,
+        scaled: data.scaled ?? false,
+        notes: data.notes,
+        approved: false,
+        createdAt: new Date(),
+      };
+      const emailKey = wodScoreEmailKey(data.wodId, score.memberEmail);
       const wodEntry = await kv.get<Wod>(wodKey(data.wodId));
       if (wodEntry.value === null) return null;
 
@@ -284,6 +304,7 @@ export function createWodRepository(kv: Deno.Kv): WodRepository {
         .set(wodScoreWodKey(data.wodId, id), id)
         .set(wodScoreApprovalKey(false, id), id)
         .set(emailKey, id);
+      if (memberEntry) atomic.check(memberEntry);
       if (memberKey) {
         atomic
           .check({ key: memberKey, versionstamp: null })

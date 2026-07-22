@@ -48,8 +48,18 @@ const EVENT_TYPES: Record<string, { label: string; cls: string }> = {
 };
 
 const MONTHS = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -108,9 +118,8 @@ export default function EventsSection(
       return timeFilter === "past" ? -diff : diff;
     });
 
-  const upcomingCount = events.filter((e) =>
-    new Date(e.date).getTime() >= now
-  ).length;
+  const upcomingCount =
+    events.filter((e) => new Date(e.date).getTime() >= now).length;
 
   /** Booking needs an account. Rather than failing at submit, send anyone
    * without a session straight to the log-in form. */
@@ -167,7 +176,9 @@ export default function EventsSection(
   };
 
   const deleteEvent = async (ev: EventItem) => {
-    const res = await fetch(`/api/events/${ev.id}/delete`, { method: "DELETE" });
+    const res = await fetch(`/api/events/${ev.id}/delete`, {
+      method: "DELETE",
+    });
     if (res.ok) {
       setEvents((list) => list.filter((e) => e.id !== ev.id));
       toast(`"${ev.title}" eliminado.`, "success");
@@ -227,8 +238,10 @@ export default function EventsSection(
         </div>
         <div class="head-tools">
           <div class="segmented" role="group" aria-label="Filtrar por fecha">
-            {([["upcoming", "Próximos"], ["past", "Pasados"], ["all", "Todos"]] as
-              [TimeFilter, string][]).map(([value, label]) => (
+            {([["upcoming", "Próximos"], ["past", "Pasados"], [
+              "all",
+              "Todos",
+            ]] as [TimeFilter, string][]).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
@@ -241,8 +254,10 @@ export default function EventsSection(
             ))}
           </div>
           <div class="segmented" role="group" aria-label="Cambiar vista">
-            {([["cards", "Tarjetas"], ["calendar", "Calendario"]] as
-              [View, string][]).map(([value, label]) => (
+            {([["cards", "Tarjetas"], ["calendar", "Calendario"]] as [
+              View,
+              string,
+            ][]).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
@@ -285,11 +300,16 @@ export default function EventsSection(
               : 0;
 
             return (
-              <article key={ev.id} class={`card event-card ${past ? "is-past" : ""}`}>
+              <article
+                key={ev.id}
+                class={`card event-card ${past ? "is-past" : ""}`}
+              >
                 <div class="card-body">
                   <div class="card-top">
                     <div class="card-titles">
-                      {meta && <span class={`tag ${meta.cls}`}>{meta.label}</span>}
+                      {meta && (
+                        <span class={`tag ${meta.cls}`}>{meta.label}</span>
+                      )}
                       <h3>{ev.title}</h3>
                     </div>
                     <span class={`badge ${full ? "badge-full" : ""}`}>
@@ -306,7 +326,9 @@ export default function EventsSection(
                     {ev.location && <span>📍 {ev.location}</span>}
                   </div>
 
-                  {!past && <Countdown targetDate={ev.date} className="mini-count" />}
+                  {!past && (
+                    <Countdown targetDate={ev.date} className="mini-count" />
+                  )}
 
                   {ev.description && <p class="muted">{ev.description}</p>}
 
@@ -321,7 +343,9 @@ export default function EventsSection(
                       <small>
                         {full
                           ? "Sin plazas libres"
-                          : `${left} ${left === 1 ? "plaza" : "plazas"} de ${ev.capacity}`}
+                          : `${left} ${
+                            left === 1 ? "plaza" : "plazas"
+                          } de ${ev.capacity}`}
                       </small>
                     </div>
                   )}
@@ -378,7 +402,9 @@ export default function EventsSection(
               class="btn dark cal-nav"
               aria-label="Mes anterior"
               onClick={() => {
-                setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1));
+                setMonth(
+                  new Date(month.getFullYear(), month.getMonth() - 1, 1),
+                );
                 setSelectedDay(null);
               }}
             >
@@ -403,7 +429,9 @@ export default function EventsSection(
               class="btn dark cal-nav"
               aria-label="Mes siguiente"
               onClick={() => {
-                setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1));
+                setMonth(
+                  new Date(month.getFullYear(), month.getMonth() + 1, 1),
+                );
                 setSelectedDay(null);
               }}
             >
@@ -412,9 +440,7 @@ export default function EventsSection(
           </div>
 
           <div class="cal-grid">
-            {WEEKDAYS.map((d) => (
-              <div key={d} class="cal-label">{d}</div>
-            ))}
+            {WEEKDAYS.map((d) => <div key={d} class="cal-label">{d}</div>)}
             {cells.map((date, idx) => {
               if (!date) return <div key={`b${idx}`} class="cal-cell empty" />;
 
@@ -422,7 +448,9 @@ export default function EventsSection(
               const classes = [
                 "cal-cell",
                 isSameDay(date, today) ? "is-today" : "",
-                selectedDay && isSameDay(date, selectedDay) ? "is-selected" : "",
+                selectedDay && isSameDay(date, selectedDay)
+                  ? "is-selected"
+                  : "",
                 dayEvents.length > 0 ? "has-events" : "",
               ].filter(Boolean).join(" ");
 
@@ -465,8 +493,7 @@ export default function EventsSection(
             )}
             {selectedDay && selectedEvents.length === 0 && (
               <p class="muted">
-                Nada programado el{" "}
-                {selectedDay.toLocaleDateString("es-ES", {
+                Nada programado el {selectedDay.toLocaleDateString("es-ES", {
                   day: "numeric",
                   month: "long",
                 })}.
@@ -488,7 +515,9 @@ export default function EventsSection(
                       </span>
                       {ev.location && <span>📍 {ev.location}</span>}
                       {left !== null && (
-                        <span>{left === 0 ? "Completo" : `${left} plazas`}</span>
+                        <span>
+                          {left === 0 ? "Completo" : `${left} plazas`}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -587,6 +616,12 @@ function BookingModal(
         toast(`¡Plaza confirmada en ${event.title}!`, "success");
         onBooked();
       } else {
+        if (res.status === 401) {
+          onClose();
+          toast("Tu sesión ha caducado. Vuelve a iniciarla.", "info");
+          setTimeout(() => emit(OPEN_LOGIN), 0);
+          return;
+        }
         const data = await res.json().catch(() => ({}));
         toast(data.error ?? "No se pudo completar la reserva.", "error");
       }
@@ -623,12 +658,15 @@ function BookingModal(
           </div>
         </div>
         <label class="field">
-          <span>Comentarios <em>(opcional)</em></span>
+          <span>
+            Comentarios <em>(opcional)</em>
+          </span>
           <textarea
             class="input"
             placeholder="Lesiones, escalados, dudas…"
             value={comments}
-            onInput={(e) => setComments((e.target as HTMLTextAreaElement).value)}
+            onInput={(e) =>
+              setComments((e.target as HTMLTextAreaElement).value)}
           />
         </label>
         <button class="btn green" type="submit" disabled={loading}>
@@ -663,6 +701,12 @@ function CancelModal(
         toast("Reserva cancelada. La plaza queda libre.", "success");
         onCancelled();
       } else {
+        if (res.status === 401) {
+          onClose();
+          toast("Tu sesión ha caducado. Vuelve a iniciarla.", "info");
+          setTimeout(() => emit(OPEN_LOGIN), 0);
+          return;
+        }
         const data = await res.json().catch(() => ({}));
         toast(data.error ?? "No se pudo cancelar la reserva.", "error");
       }
@@ -682,8 +726,9 @@ function CancelModal(
     >
       <form class="form" onSubmit={submit}>
         <p class="muted">
-          Vamos a liberar tu plaza en <b>{event.title}</b>. Podrás volver a
-          apuntarte mientras queden sitios.
+          Vamos a liberar tu plaza en{" "}
+          <b>{event.title}</b>. Podrás volver a apuntarte mientras queden
+          sitios.
         </p>
         <button class="btn red" type="submit" disabled={loading}>
           {loading ? "Cancelando…" : "Cancelar mi reserva"}

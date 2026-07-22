@@ -12,9 +12,9 @@ import {
   parseTimeToSeconds,
 } from "../lib/movements.ts";
 import {
-  type WodFormat,
   WOD_FORMAT_LABELS,
   WOD_SCORE_LABELS,
+  type WodFormat,
   type WodScoreType,
 } from "../types/Wod.ts";
 
@@ -139,9 +139,7 @@ export default function WodSection({ wods: initial, isAdmin, member }: Props) {
 
               <div class="wod-meta">
                 <span>Score: {WOD_SCORE_LABELS[wod.scoreType]}</span>
-                {wod.timeCapMinutes && (
-                  <span>⏱ Cap {wod.timeCapMinutes}′</span>
-                )}
+                {wod.timeCapMinutes && <span>⏱ Cap {wod.timeCapMinutes}′</span>}
                 <span>
                   {wod.scores.length}{" "}
                   {wod.scores.length === 1 ? "score" : "scores"}
@@ -152,7 +150,9 @@ export default function WodSection({ wods: initial, isAdmin, member }: Props) {
                 <ol class="wod-scores">
                   {wod.scores.slice(0, 5).map((s, i) => (
                     <li key={s.id}>
-                      <span class="rank">{i < 3 ? MEDALS[i] : `#${i + 1}`}</span>
+                      <span class="rank">
+                        {i < 3 ? MEDALS[i] : `#${i + 1}`}
+                      </span>
                       <span class="wod-athlete">
                         {s.memberName}
                         <span class={`tag ${s.scaled ? "t-scaled" : "t-rx"}`}>
@@ -246,6 +246,12 @@ function ScoreModal(
         toast("¡Score enviado! Se publicará tras revisarlo.", "success");
         onClose();
       } else {
+        if (res.status === 401) {
+          onClose();
+          toast("Tu sesión ha caducado. Vuelve a iniciarla.", "info");
+          setTimeout(() => emit(OPEN_LOGIN), 0);
+          return;
+        }
         const data = await res.json().catch(() => ({}));
         toast(data.error ?? "No se pudo registrar el score.", "error");
       }
@@ -275,7 +281,8 @@ function ScoreModal(
         </div>
         <label class="field">
           <span>
-            Resultado <em>({isTime ? "mm:ss" : WOD_SCORE_LABELS[wod.scoreType]})</em>
+            Resultado{" "}
+            <em>({isTime ? "mm:ss" : WOD_SCORE_LABELS[wod.scoreType]})</em>
           </span>
           <input
             class="input"
@@ -297,7 +304,9 @@ function ScoreModal(
           <span>Lo hice escalado (scaled)</span>
         </label>
         <label class="field">
-          <span>Notas <em>(opcional)</em></span>
+          <span>
+            Notas <em>(opcional)</em>
+          </span>
           <textarea
             class="input"
             placeholder="Pesos usados, escalados, sensaciones…"
@@ -405,7 +414,9 @@ function WodFormModal({ onClose }: { onClose: () => void }) {
             onInput={(e) =>
               setDescription((e.target as HTMLTextAreaElement).value)}
           />
-          <small class="hint">Se muestra tal cual, respetando los saltos de línea.</small>
+          <small class="hint">
+            Se muestra tal cual, respetando los saltos de línea.
+          </small>
         </label>
         <div class="field-row">
           <label class="field">
@@ -424,7 +435,9 @@ function WodFormModal({ onClose }: { onClose: () => void }) {
             </select>
           </label>
           <label class="field">
-            <span>Time cap <em>(min, opcional)</em></span>
+            <span>
+              Time cap <em>(min, opcional)</em>
+            </span>
             <input
               class="input"
               type="number"

@@ -1,12 +1,14 @@
 import { assert, assertEquals, assertRejects } from "std/assert/mod.ts";
 import { withKv } from "./test_utils.ts";
 import { createEventRepository } from "./eventRepository.ts";
+import { createMemberRepository } from "./memberRepository.ts";
 import {
   createSignupRepository,
   DuplicateSignupError,
   EventAlreadyStartedError,
   EventFullError,
   EventNotPublishedError,
+  MemberNotEligibleError,
 } from "./signupRepository.ts";
 
 async function listKeys(
@@ -22,6 +24,22 @@ async function listKeys(
 
 function futureIso(): string {
   return new Date(Date.now() + 86_400_000).toISOString();
+}
+
+async function approvedMember(
+  kv: Deno.Kv,
+  name: string,
+  email: string,
+) {
+  const members = createMemberRepository(kv);
+  const member = await members.create({
+    name,
+    email,
+    level: "intermediate",
+    goal: "general",
+    location: "Madrid",
+  });
+  return (await members.approve(member.id))!;
 }
 
 Deno.test("only one simultaneous signup per event and email commits", async () => {
@@ -80,12 +98,17 @@ Deno.test("cancelling a signup deletes indexes and decrements attendees", async 
     // Bookings require a published event; these tests exercise capacity
     // and duplicate rules, not moderation.
     await events.update(event.id, { approved: true });
+    const member = await approvedMember(
+      kv,
+      "Athlete",
+      "cancel-me@example.com",
+    );
 
     const signup = await signups.create({
       eventId: event.id,
-      memberId: "mbr-cancel-test",
-      memberName: "Athlete",
-      memberEmail: "cancel-me@example.com",
+      memberId: member.id,
+      memberName: "Ignored",
+      memberEmail: "ignored@example.com",
     });
     assert(signup);
 
@@ -106,7 +129,7 @@ Deno.test("cancelling a signup deletes indexes and decrements attendees", async 
       0,
     );
     assertEquals(
-      (await listKeys(kv, ["signups_by_member", "mbr-cancel-test"])).length,
+      (await listKeys(kv, ["signups_by_member", member.id])).length,
       0,
     );
 
@@ -208,14 +231,24 @@ Deno.test("a burst of bookings succeeds while capacity remains", async () => {
     });
     await events.update(event.id, { approved: true });
 
-    const results = await Promise.allSettled(
+    const members = await Promise.all(
       Array.from({ length: 10 }, (_, index) =>
+        approvedMember(
+          kv,
+          `Athlete ${index}`,
+          `burst-${index}@example.com`,
+        )),
+    );
+
+    const results = await Promise.allSettled(
+      members.map((member, index) =>
         signups.create({
           eventId: event.id,
-          memberId: `mbr-burst-${index}`,
-          memberName: `Athlete ${index}`,
-          memberEmail: `burst-${index}@example.com`,
-        })),
+          memberId: member.id,
+          memberName: "Ignored",
+          memberEmail: "ignored@example.com",
+        })
+      ),
     );
 
     assertEquals(
@@ -237,18 +270,19 @@ Deno.test("stable member id prevents a second booking after an email change", as
       description: "Identity test",
     });
     await events.update(event.id, { approved: true });
+    const member = await approvedMember(kv, "Athlete", "old@example.com");
 
     await signups.create({
       eventId: event.id,
-      memberId: "mbr-stable",
-      memberName: "Athlete",
-      memberEmail: "old@example.com",
+      memberId: member.id,
+      memberName: "Ignored",
+      memberEmail: "ignored@example.com",
     });
     await assertRejects(
       () =>
         signups.create({
           eventId: event.id,
-          memberId: "mbr-stable",
+          memberId: member.id,
           memberName: "Athlete",
           memberEmail: "new@example.com",
         }),
@@ -269,7 +303,6 @@ Deno.test("unpublished and past events reject bookings in the transaction", asyn
     });
     const data = {
       eventId: event.id,
-      memberId: "mbr-closed",
       memberName: "Athlete",
       memberEmail: "closed@example.com",
     };
@@ -390,5 +423,39 @@ Deno.test("an athlete finds their own booking by event and email", async () => {
       await signups.getByEventEmail(event.id, "nobody@example.com"),
       null,
     );
+  });
+});
+
+Deno.test("stable-id signup requires an approved member and uses checked attribution", async () => {
+  await withKv(async (kv) => {
+    const events = createEventRepository(kv);
+    const signups = createSignupRepository(kv);
+    const members = createMemberRepository(kv);
+    const event = await events.create({
+      title: "Identity-bound signup",
+      date: futureIso(),
+      location: "Gym",
+      description: "Atomic member check",
+    });
+    await events.update(event.id, { approved: true });
+    const member = await members.create({
+      name: "Stored Athlete",
+      email: "stored@example.com",
+      level: "intermediate",
+      goal: "crossfit",
+      location: "Madrid",
+    });
+    const request = {
+      eventId: event.id,
+      memberId: member.id,
+      memberName: "Impostor",
+      memberEmail: "impostor@example.com",
+    };
+
+    await assertRejects(() => signups.create(request), MemberNotEligibleError);
+    await members.approve(member.id);
+    const signup = await signups.create(request);
+    assertEquals(signup?.memberName, "Stored Athlete");
+    assertEquals(signup?.memberEmail, "stored@example.com");
   });
 });

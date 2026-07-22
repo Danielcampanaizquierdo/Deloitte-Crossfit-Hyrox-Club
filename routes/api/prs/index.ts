@@ -1,13 +1,17 @@
 import { Handlers } from "$fresh/server.ts";
 import { prService } from "../../../services/prService.ts";
-import { MOVEMENTS, movementMetric } from "../../../lib/movements.ts";
+import { movementMetric, MOVEMENTS } from "../../../lib/movements.ts";
 import { State } from "../../../types/State.ts";
 import { toPublicPR, toPublicPRs } from "../../../types/PR.ts";
+import { MemberNotEligibleError } from "../../../repositories/prRepository.ts";
 
 function validCalendarDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== value
+  ) {
     return false;
   }
   const today = new Date().toISOString().slice(0, 10);
@@ -53,7 +57,9 @@ export const handler: Handlers<unknown, State> = {
 
     const definition = MOVEMENTS.find((item) => item.name === movement);
     if (!definition) {
-      return Response.json({ error: "Movimiento no reconocido" }, { status: 400 });
+      return Response.json({ error: "Movimiento no reconocido" }, {
+        status: 400,
+      });
     }
 
     const weightNum = Number(body.weight);
@@ -75,15 +81,25 @@ export const handler: Handlers<unknown, State> = {
 
     // Attribution comes from the session: a PR can only be filed under the
     // logged-in member's own name.
-    const pr = await prService.create({
-      memberId: member.id,
-      memberName: member.name,
-      memberEmail: member.email,
-      movement,
-      weight: weightNum,
-      metric,
-      date,
-    });
-    return Response.json(toPublicPR(pr), { status: 201 });
+    try {
+      const pr = await prService.create({
+        memberId: member.id,
+        memberName: member.name,
+        memberEmail: member.email,
+        movement,
+        weight: weightNum,
+        metric,
+        date,
+      });
+      return Response.json(toPublicPR(pr), { status: 201 });
+    } catch (error) {
+      if (error instanceof MemberNotEligibleError) {
+        return Response.json(
+          { error: "Tu cuenta ya no está activa o aprobada" },
+          { status: 403 },
+        );
+      }
+      throw error;
+    }
   },
 };

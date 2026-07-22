@@ -34,9 +34,13 @@ La aplicación estará disponible en `http://localhost:8000`
 > base de datos fallará con `Deno.openKv is not a function`.
 
 > **Login de administrador:** el inicio de sesión requiere las variables de
-> entorno `ADMIN_PASSCODE` y `SESSION_SECRET` (esta última, un secreto aleatorio
-> de al menos 32 caracteres). Sin ellas, `POST /api/admin/login` responde 500.
-> Consulta [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el despliegue.
+> entorno `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_PASSWORD`
+> y `SESSION_SECRET` (esta última, un secreto aleatorio de al menos 32
+> caracteres). La cuenta inicial se crea una sola vez con PBKDF2; cambiar
+> después `INITIAL_ADMIN_*` no crea otro superadmin y ya no existe un passcode
+> compartido. No configures `TRUST_PROXY_HEADER` salvo que tu proxy sobrescriba
+> de forma fiable esa cabecera; consulta la guía de despliegue. Consulta
+> [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el despliegue.
 
 ## 📁 Estructura del Proyecto
 
@@ -182,7 +186,7 @@ La aplicación estará disponible en `http://localhost:8000`
 - Aprobar/rechazar miembros pendientes
 - Aprobar/rechazar PRs
 - Aprobar/rechazar resultados
-- Sistema de autenticación con passcode
+- Cuentas administrativas individuales con rol, estado y sesión revocable
 
 ✅ **Cliente HTTP**
 
@@ -293,8 +297,8 @@ La aplicación estará disponible en `http://localhost:8000`
 ### Apuntarse a Evento
 
 1. User rellena formulario de signup
-2. `SignupFormModal` hace POST a `/api/signups`
-3. `signupService.create()` valida no duplicados
+2. `SignupFormModal` hace POST a `/api/events/{id}/signup`
+3. El servidor toma la identidad de la sesión y valida no duplicados
 4. Se incrementa contador de attendees del evento
 5. Confirmación visual
 
@@ -323,9 +327,16 @@ curl "http://localhost:8000/api/members?search=demo&level=intermediate"
 # Get PRs by movement
 curl "http://localhost:8000/api/prs?movement=clean_and_jerk"
 
-# Create event
+# Login as an individual admin
+curl -X POST http://localhost:8000/api/admin/login \
+  -H "Content-Type: application/json" \
+  -c admin-cookies.txt \
+  -d '{"email":"admin@example.com","password":"your-admin-password"}'
+
+# Create event with the admin session
 curl -X POST http://localhost:8000/api/events \
   -H "Content-Type: application/json" \
+  -b admin-cookies.txt \
   -d '{
     "title": "New Event",
     "description": "Description",
@@ -333,30 +344,36 @@ curl -X POST http://localhost:8000/api/events \
     "location": "Madrid"
   }'
 
-# Create member
-curl -X POST http://localhost:8000/api/members \
+# Register member
+curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
     "email": "john@example.com",
+    "password": "replace-with-a-strong-password",
     "level": "beginner",
     "goal": "hyrox",
     "location": "Madrid"
   }'
 
-# Create signup
-curl -X POST http://localhost:8000/api/signups \
+# Login after admin approval and save the member cookie
+curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "eventId": "evt-001",
-    "memberName": "Demo",
-    "memberEmail": "demo@example.com"
-  }'
+  -c cookies.txt \
+  -d '{"email":"john@example.com","password":"replace-with-a-strong-password"}'
+
+# Book as the authenticated member
+curl -X POST http://localhost:8000/api/events/evt-001/signup \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{"comments":"Primera sesión"}'
 ```
 
 ## 🔐 Admin Features
 
-- **Passcode**: `ClubAdmin2026`
+- Login por email y contraseña; la cuenta inicial procede de `INITIAL_ADMIN_*`.
+- Logout revocable en servidor y desactivación inmediata de cuentas admin.
+- Rate limit por cliente/cuenta sin confiar por defecto en cabeceras de proxy.
 - **Pending Approvals**:
   - Members pendientes de aprobar
   - PRs pendientes
@@ -438,6 +455,8 @@ curl -X POST http://localhost:8000/api/signups \
 ### Datos de ejemplo
 
 ```bash
+INITIAL_ADMIN_EMAIL=admin@example.com \
+INITIAL_ADMIN_PASSWORD='your-admin-password' \
 deno run -A scripts/seed.ts
 ```
 
@@ -472,7 +491,9 @@ pase `SEED_ALLOW_REMOTE=1`.
 
 ### Admin
 
-- **Passcode**: ClubAdmin2026
+- Usa la cuenta configurada mediante `INITIAL_ADMIN_EMAIL` y
+  `INITIAL_ADMIN_PASSWORD` (o `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` para el
+  script).
 
 ### Miembros de prueba
 

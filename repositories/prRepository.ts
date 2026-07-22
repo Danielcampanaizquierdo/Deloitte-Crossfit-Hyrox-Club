@@ -12,13 +12,27 @@
 // service-level calculation over that result.
 
 import type { CreatePRRequest, PR, UpdatePRRequest } from "../types/PR.ts";
+import type { Member } from "../types/Member.ts";
 import { movementMetric } from "../lib/movements.ts";
-import { prApprovalKey, prKey, prMemberKey, prMovementKey } from "./keys.ts";
+import {
+  memberKey,
+  prApprovalKey,
+  prKey,
+  prMemberKey,
+  prMovementKey,
+} from "./keys.ts";
 
 const MAX_RETRIES = 3;
 
 function generateId(): string {
   return `pr-${crypto.randomUUID()}`;
+}
+
+export class MemberNotEligibleError extends Error {
+  constructor(memberId: string) {
+    super(`Member "${memberId}" is not active and approved`);
+    this.name = "MemberNotEligibleError";
+  }
 }
 
 async function resolveIds(
@@ -92,33 +106,44 @@ export function createPrRepository(kv: Deno.Kv): PrRepository {
 
   async function create(data: CreatePRRequest): Promise<PR> {
     const id = generateId();
-    const now = new Date();
-    const pr: PR = {
-      id,
-      memberId: data.memberId ?? "",
-      memberName: data.memberName,
-      memberEmail: data.memberEmail,
-      movement: data.movement,
-      weight: data.weight,
-      // Derived from the catalogue rather than trusted from the request, so a
-      // movement always ranks the way its own metric implies. An explicit
-      // metric still wins, for movements outside the catalogue.
-      metric: data.metric ?? movementMetric(data.movement),
-      date: new Date(data.date),
-      approved: false,
-      createdAt: now,
-      updatedAt: now,
-    };
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const memberEntry = data.memberId
+        ? await kv.get<Member>(memberKey(data.memberId))
+        : null;
+      if (
+        memberEntry &&
+        (memberEntry.value === null || !memberEntry.value.approved ||
+          memberEntry.value.active === false || memberEntry.value.deletedAt)
+      ) {
+        throw new MemberNotEligibleError(data.memberId!);
+      }
+
+      const now = new Date();
+      const pr: PR = {
+        id,
+        memberId: data.memberId ?? "",
+        memberName: memberEntry?.value?.name ?? data.memberName,
+        memberEmail: memberEntry?.value?.email ?? data.memberEmail,
+        movement: data.movement,
+        weight: data.weight,
+        // Derived from the catalogue rather than trusted from the request, so
+        // a movement always ranks the way its own metric implies.
+        metric: data.metric ?? movementMetric(data.movement),
+        date: new Date(data.date),
+        approved: false,
+        createdAt: now,
+        updatedAt: now,
+      };
       const primary = await kv.get<PR>(prKey(id));
-      const res = await kv.atomic()
+      const atomic = kv.atomic()
         .check(primary)
         .set(prKey(id), pr)
         .set(prApprovalKey(pr.approved, id), id)
         .set(prMovementKey(pr.movement, id), id)
-        .set(prMemberKey(pr.memberId, id), id)
-        .commit();
+        .set(prMemberKey(pr.memberId, id), id);
+      if (memberEntry) atomic.check(memberEntry);
+      const res = await atomic.commit();
       if (res.ok) return pr;
     }
     throw new Error(`Failed to create PR ${id} after ${MAX_RETRIES} attempts`);

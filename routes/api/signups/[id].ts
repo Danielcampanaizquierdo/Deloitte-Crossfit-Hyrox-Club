@@ -10,10 +10,9 @@ export const handler: Handlers<unknown, State> = {
     }
     // A booking record carries the booker's email and comments, so only its
     // owner or an admin may read it.
-    const isOwner = signup.memberId
-      ? ctx.state.member?.id === signup.memberId
-      : ctx.state.member?.email.toLowerCase() ===
-        signup.memberEmail.toLowerCase();
+    const isOwner = Boolean(
+      signup.memberId && ctx.state.member?.id === signup.memberId,
+    );
     if (!ctx.state.isAdmin && !isOwner) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -27,10 +26,9 @@ export const handler: Handlers<unknown, State> = {
     }
 
     // Anyone could previously cancel any reservation by id.
-    const isOwner = signup.memberId
-      ? ctx.state.member?.id === signup.memberId
-      : ctx.state.member?.email.toLowerCase() ===
-        signup.memberEmail.toLowerCase();
+    const isOwner = Boolean(
+      signup.memberId && ctx.state.member?.id === signup.memberId,
+    );
     if (!ctx.state.isAdmin && !isOwner) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }

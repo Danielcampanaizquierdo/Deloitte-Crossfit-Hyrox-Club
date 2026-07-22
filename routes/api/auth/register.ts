@@ -4,6 +4,12 @@ import { hashPassword, validatePassword } from "../../../lib/password.ts";
 import { toPublicMember } from "../../../types/Member.ts";
 import { State } from "../../../types/State.ts";
 import { DuplicateMemberEmailError } from "../../../repositories/memberRepository.ts";
+import { kv } from "../../../lib/kv.ts";
+import {
+  clientAddress,
+  consumeRateLimit,
+  rateLimitedResponse,
+} from "../../../lib/rateLimit.ts";
 
 const privateHeaders = { "Cache-Control": "no-store" };
 
@@ -12,7 +18,7 @@ function validEmail(email: string): boolean {
 }
 
 export const handler: Handlers<unknown, State> = {
-  async POST(req, _ctx) {
+  async POST(req, ctx) {
     let body: Record<string, string>;
     try {
       body = await req.json();
@@ -69,6 +75,14 @@ export const handler: Handlers<unknown, State> = {
       );
     }
 
+    const limit = await consumeRateLimit(await kv, {
+      scope: "member_register",
+      identifier: clientAddress(req, ctx.remoteAddr?.hostname),
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
+
     if (await memberService.getByEmail(email)) {
       return Response.json(
         { error: "Ya existe una cuenta con ese email" },
@@ -85,7 +99,9 @@ export const handler: Handlers<unknown, State> = {
         level: level as "beginner" | "intermediate" | "advanced",
         goal: goal as "crossfit" | "hyrox" | "general",
         location,
-        bio: typeof body.bio === "string" ? body.bio.trim() || undefined : undefined,
+        bio: typeof body.bio === "string"
+          ? body.bio.trim() || undefined
+          : undefined,
         passwordHash: hash,
         passwordSalt: salt,
       });

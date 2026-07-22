@@ -7,6 +7,12 @@ export interface Member {
   location: string;
   bio?: string;
   approved: boolean;
+  /** New records are active. Undefined is treated as active for records
+   * written before account deactivation existed. */
+  active?: boolean;
+  /** Tombstone timestamp. Deleted members keep their stable id and email so
+   * historical records cannot be claimed by a new account. */
+  deletedAt?: Date;
   /** PBKDF2 hash and its salt (see lib/password.ts). Absent on members created
    * before accounts existed; those cannot log in until given a password. */
   passwordHash?: string;
