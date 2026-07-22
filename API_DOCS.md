@@ -193,7 +193,7 @@ curl -X DELETE http://localhost:8000/api/members/mbr-001
 
 #### GET /prs
 
-Obtener PRs aprobados. Filtrable por movimiento.
+Obtener PRs aprobados. Filtrable por movimiento y por búsqueda de atleta.
 
 ```bash
 # Todos
@@ -201,7 +201,20 @@ curl http://localhost:8000/api/prs
 
 # Por movimiento
 curl "http://localhost:8000/api/prs?movement=clean_and_jerk"
+
+# Por nombre de atleta (búsqueda por subcadena, sin distinguir mayúsculas)
+curl "http://localhost:8000/api/prs?search=maria"
+
+# Combinado
+curl "http://localhost:8000/api/prs?movement=clean_and_jerk&search=maria"
 ```
+
+**Query params**:
+
+- `movement` (opcional): filtra por movimiento.
+- `search` (opcional): filtra por nombre del atleta (`memberName`), coincidencia
+  de subcadena sin distinguir mayúsculas/minúsculas. Espacios al inicio/fin se
+  ignoran; si queda vacío no filtra.
 
 **Valid movements**: clean_and_jerk, snatch, deadlift, squat, bench_press,
 back_squat, front_squat

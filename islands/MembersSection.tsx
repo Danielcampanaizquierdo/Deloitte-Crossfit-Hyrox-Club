@@ -80,6 +80,20 @@ export default function MembersSection(
     return map;
   }, [prs]);
 
+  // Defensive fallback for legacy PRs with a blank athleteId: match them by
+  // exact member name only. PRs that HAVE an athleteId are never indexed here,
+  // so correctly-attributed records keep their homonym-safe matching.
+  const prsByName = useMemo(() => {
+    const map = new Map<string, MemberPR[]>();
+    for (const pr of prs) {
+      if (pr.athleteId) continue;
+      const bucket = map.get(pr.memberName);
+      if (bucket) bucket.push(pr);
+      else map.set(pr.memberName, [pr]);
+    }
+    return map;
+  }, [prs]);
+
   const filtered = members.filter((m) => {
     const term = search.trim().toLowerCase();
     const matchesSearch = !term ||
@@ -199,7 +213,8 @@ export default function MembersSection(
       <div class="grid cards3">
         {filtered.map((m) => {
           const lvl = LEVELS[m.level] ?? { label: m.level, cls: "lvl-b" };
-          const count = prsByAthlete.get(m.id)?.length ?? 0;
+          const count = (prsByAthlete.get(m.id) ?? []).length +
+            (prsByName.get(m.name) ?? []).length;
           return (
             <article
               key={m.id}
@@ -267,7 +282,10 @@ export default function MembersSection(
 
             <h4 class="profile-sub">Récords personales</h4>
             {(() => {
-              const own = prsByAthlete.get(detail.id) ?? [];
+              const own = [
+                ...(prsByAthlete.get(detail.id) ?? []),
+                ...(prsByName.get(detail.name) ?? []),
+              ];
               if (own.length === 0) {
                 return (
                   <p class="muted">

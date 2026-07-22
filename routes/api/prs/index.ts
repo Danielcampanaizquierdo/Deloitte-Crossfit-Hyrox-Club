@@ -19,12 +19,22 @@ function validCalendarDate(value: string): boolean {
 }
 
 export const handler: Handlers<unknown, State> = {
-  // Approved PRs only, optionally narrowed to one movement with ?movement=.
+  // Approved PRs only, optionally narrowed to one movement with ?movement=
+  // and/or a free-text athlete search with ?search=.
   async GET(req, _ctx) {
-    const movement = new URL(req.url).searchParams.get("movement");
-    const prs = movement
+    const params = new URL(req.url).searchParams;
+    const movement = params.get("movement");
+    let prs = movement
       ? await prService.getByMovement(movement)
       : await prService.getApproved();
+
+    // Mirror the client's leaderboard search: case-insensitive substring
+    // match on the athlete's name (see islands/LeaderboardSection.tsx).
+    const search = params.get("search")?.trim().toLowerCase();
+    if (search) {
+      prs = prs.filter((pr) => pr.memberName.toLowerCase().includes(search));
+    }
+
     return Response.json(toPublicPRs(prs));
   },
 

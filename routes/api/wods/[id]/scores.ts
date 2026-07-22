@@ -2,7 +2,11 @@ import { Handlers } from "$fresh/server.ts";
 import { wodService } from "../../../../services/wodService.ts";
 import { parseTimeToSeconds } from "../../../../lib/movements.ts";
 import { State } from "../../../../types/State.ts";
-import { toPublicWodScore, toPublicWodScores } from "../../../../types/Wod.ts";
+import {
+  rankWodScores,
+  toPublicWodScore,
+  toPublicWodScores,
+} from "../../../../types/Wod.ts";
 import { MemberNotEligibleError } from "../../../../repositories/wodRepository.ts";
 
 export const handler: Handlers<unknown, State> = {
@@ -12,7 +16,9 @@ export const handler: Handlers<unknown, State> = {
       return Response.json({ error: "WOD no encontrado" }, { status: 404 });
     }
     const scores = await wodService.getScoresByWod(ctx.params.id);
-    return Response.json(toPublicWodScores(scores.filter((s) => s.approved)));
+    const approved = scores.filter((s) => s.approved);
+    const ranked = rankWodScores(approved, wod.scoreType);
+    return Response.json(toPublicWodScores(ranked));
   },
 
   async POST(req, ctx) {

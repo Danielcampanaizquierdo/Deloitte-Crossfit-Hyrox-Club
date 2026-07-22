@@ -33,6 +33,38 @@ function responseSetsCookie(response: Response, name: string): boolean {
     .includes(`${name.toLowerCase()}=`);
 }
 
+// Content-Security-Policy tuned for Fresh: the framework injects an inline
+// hydration/state <script> and the app relies on inline style="..." attributes,
+// so script-src/style-src must allow 'unsafe-inline'. The hardening value is in
+// frame-ancestors/object-src/base-uri, which do not interfere with hydration.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+// These are safe on every response, including static assets, and never conflict
+// with what Fresh route handlers set.
+const SECURITY_HEADERS: Record<string, string> = {
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy":
+    "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+};
+
+// Enforced (not Report-Only): verified with a headless browser that the home
+// page hydrates and islands stay interactive (a login modal opens on click)
+// with zero securitypolicyviolation events under this policy.
+const CSP_HEADER_NAME = "Content-Security-Policy";
+
 export async function handler(
   req: Request,
   ctx: MiddlewareHandlerContext<State>,
@@ -78,6 +110,17 @@ export async function handler(
 
   const response = await ctx.next();
 
+  // Baseline security headers on every response (safe on static assets too).
+  // Only set when absent so a route handler can always override intentionally.
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    if (!response.headers.has(name)) {
+      response.headers.set(name, value);
+    }
+  }
+  if (!response.headers.has(CSP_HEADER_NAME)) {
+    response.headers.set(CSP_HEADER_NAME, CONTENT_SECURITY_POLICY);
+  }
+
   // Any representation may differ when a session cookie is present. This is
   // essential for the home page and endpoints such as event attendees, whose
   // public and admin projections contain different fields.
@@ -89,6 +132,21 @@ export async function handler(
     hadAdminCookie || hadMemberCookie || admin || member
   ) {
     response.headers.set("Cache-Control", "private, no-store");
+  }
+
+  // Anonymous/public GETs (home page and read APIs) carry auth-varying
+  // projections and rely on Vary: Cookie alone. Add an explicit no-store so a
+  // shared cache can never serve one identity's projection to another. Scoped
+  // to dynamic routes only: static assets and /_frsh/ bundles already carry a
+  // Cache-Control from Fresh, so the has()-guard leaves them cacheable.
+  if (req.method === "GET" || req.method === "HEAD") {
+    const pathname = new URL(req.url).pathname;
+    if (
+      !response.headers.has("Cache-Control") &&
+      (pathname === "/" || pathname.startsWith("/api/"))
+    ) {
+      response.headers.set("Cache-Control", "no-store");
+    }
   }
 
   // Invalid, expired, revoked, or newly disabled sessions should not leave a
