@@ -6,7 +6,6 @@ import * as $_app from "./routes/_app.tsx";
 import * as $_middleware from "./routes/_middleware.ts";
 import * as $api_admin_login from "./routes/api/admin/login.ts";
 import * as $api_admin_logout from "./routes/api/admin/logout.ts";
-import * as $api_admin_reset_init from "./routes/api/admin/reset-init.ts";
 import * as $api_admin_members_id_approve from "./routes/api/admin/members/[id]/approve.ts";
 import * as $api_admin_prs_id_approve from "./routes/api/admin/prs/[id]/approve.ts";
 import * as $api_admin_results_id_approve from "./routes/api/admin/results/[id]/approve.ts";
@@ -62,7 +61,6 @@ const manifest = {
     "./routes/_middleware.ts": $_middleware,
     "./routes/api/admin/login.ts": $api_admin_login,
     "./routes/api/admin/logout.ts": $api_admin_logout,
-    "./routes/api/admin/reset-init.ts": $api_admin_reset_init,
     "./routes/api/admin/members/[id]/approve.ts": $api_admin_members_id_approve,
     "./routes/api/admin/prs/[id]/approve.ts": $api_admin_prs_id_approve,
     "./routes/api/admin/results/[id]/approve.ts": $api_admin_results_id_approve,
