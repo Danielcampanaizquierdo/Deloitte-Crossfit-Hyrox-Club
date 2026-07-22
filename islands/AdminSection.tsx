@@ -454,6 +454,7 @@ function PendingRow(
 function EventFormModal({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("10:00");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("wod");
@@ -462,15 +463,12 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
 
   const submit = async (e: Event) => {
     e.preventDefault();
-    if (!title.trim() || !date || !location.trim() || !description.trim()) {
+    if (!title.trim() || !date || !time || !location.trim() || !description.trim()) {
       toast("Rellena todos los campos obligatorios.", "error");
       return;
     }
 
-    // Resolve the wall clock the admin typed into an absolute instant here,
-    // where their timezone is known. Sending the bare value let the server
-    // read it as UTC and shifted every event by the club's offset.
-    const isoDate = localDateTimeToIso(date);
+    const isoDate = localDateTimeToIso(`${date}T${time}`);
     if (!isoDate) {
       toast("La fecha del evento no es válida.", "error");
       return;
@@ -520,13 +518,22 @@ function EventFormModal({ onClose }: { onClose: () => void }) {
         </label>
         <div class="field-row">
           <label class="field">
-            <span>Fecha y hora</span>
+            <span>Fecha</span>
             <input
-              class="input"
-              type="datetime-local"
+              class="input input-date"
+              type="date"
               required
-              value={date}
-              onInput={(e) => setDate((e.target as HTMLInputElement).value)}
+              onChange={(e) => setDate((e.target as HTMLInputElement).value)}
+            />
+          </label>
+          <label class="field">
+            <span>Hora</span>
+            <input
+              class="input input-time"
+              type="time"
+              required
+              value={time}
+              onChange={(e) => setTime((e.target as HTMLInputElement).value)}
             />
           </label>
           <label class="field">

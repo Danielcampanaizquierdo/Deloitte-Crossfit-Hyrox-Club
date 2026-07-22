@@ -334,6 +334,9 @@ button,input,textarea,select{font-family:inherit}
 }
 .input:focus{border-color:var(--green);background:rgba(0,0,0,.7);outline:none}
 .input::placeholder{color:#6b6b6b}
+.input-date,.input-time{color-scheme:dark;cursor:pointer}
+.input-date::-webkit-calendar-picker-indicator,.input-time::-webkit-calendar-picker-indicator{filter:invert(1) brightness(.6) sepia(1) hue-rotate(60deg) saturate(4);cursor:pointer;border-radius:4px;padding:2px}
+.input-date::-webkit-calendar-picker-indicator:hover,.input-time::-webkit-calendar-picker-indicator:hover{filter:invert(1) brightness(.8) sepia(1) hue-rotate(60deg) saturate(5)}
 
 .leader-card .row{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:center}
 .leader-card .rank{font-family:var(--font-mono);font-weight:900;color:var(--green);font-size:15px;text-align:center}
