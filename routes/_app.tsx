@@ -1,6 +1,5 @@
 /** @jsx h */
 /** @jsxFrag Fragment */
-import { h, Fragment } from "preact";
 import { AppProps } from "$fresh/server.ts";
 import { Head } from "$fresh/runtime.ts";
 
