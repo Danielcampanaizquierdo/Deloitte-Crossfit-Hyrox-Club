@@ -59,11 +59,10 @@ export default function Modal(
     // The page behind a modal must not scroll under it on touch devices.
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    // Lifts the active section's stacking context above the sticky nav while a
-    // modal is open, so the nav bar can't paint over the dialog. The section
-    // animates opacity (fill:both), which pins it into its own stacking
-    // context below the nav's z-index; raising it only while a modal is open
-    // keeps normal scrolling unaffected.
+    // Lifts the active section's stacking context while a modal is open. The
+    // section animates opacity (fill:both), which pins it into its own
+    // stacking context; raising it only while a modal is open keeps normal
+    // scrolling unaffected.
     document.body.classList.add("modal-open");
 
     // Focus the first real control so keyboard users land inside the form
