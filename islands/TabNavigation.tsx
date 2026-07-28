@@ -1,13 +1,12 @@
 /** @jsx h */
 /** @jsxFrag Fragment */
 import { Fragment, h } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { on, PENDING_CHANGED } from "../lib/bus.ts";
 
 interface Tab {
   id: string;
   label: string;
-  badge?: number;
 }
 
 interface Props {
@@ -26,6 +25,17 @@ const TABS: Tab[] = [
 
 const IDS = TABS.map((t) => t.id);
 
+// Emoji icons, matching the style already used elsewhere in the app (empty
+// states, tags) rather than introducing a new SVG icon set.
+const ICONS: Record<string, string> = {
+  events: "📅",
+  wod: "⏱️",
+  leaderboard: "🏆",
+  results: "🥇",
+  members: "👥",
+  admin: "⚙️",
+};
+
 /** Shows one section and hides the rest.
  *
  * The sections are server-rendered siblings outside this island, so visibility
@@ -41,6 +51,9 @@ export default function TabNavigation({ pendingCount = 0, isAdmin = false }: Pro
   // Server-rendered to start, then kept in step with the moderation queues,
   // which live in another island.
   const [pending, setPending] = useState(pendingCount);
+  const [open, setOpen] = useState(false);
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
 
   useEffect(() => on<number>(PENDING_CHANGED, setPending), []);
 
@@ -59,6 +72,55 @@ export default function TabNavigation({ pendingCount = 0, isAdmin = false }: Pro
     return () => globalThis.removeEventListener("hashchange", fromHash);
   }, []);
 
+  // While the menu is open: trap Tab between the trigger and the items,
+  // Escape closes, and the page behind can't scroll under the overlay.
+  // Mirrors the pattern already used by components/Modal.tsx.
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const focusable = [
+        fabRef.current,
+        ...Array.from(
+          menuRef.current?.querySelectorAll<HTMLButtonElement>(".fab-item") ??
+            [],
+        ),
+      ].filter((el): el is HTMLElement => el !== null);
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    // Land keyboard focus on the current section's item, or the first one.
+    const target = menuRef.current?.querySelector<HTMLButtonElement>(
+      ".fab-item.is-active",
+    ) ?? menuRef.current?.querySelector<HTMLButtonElement>(".fab-item");
+    target?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   const select = (id: string) => {
     setActive(id);
     showSection(id);
@@ -67,25 +129,69 @@ export default function TabNavigation({ pendingCount = 0, isAdmin = false }: Pro
     if (globalThis.location.hash !== `#${id}`) {
       globalThis.history.pushState(null, "", `#${id}`);
     }
+    setOpen(false);
+    fabRef.current?.focus();
   };
 
+  const close = () => {
+    setOpen(false);
+    fabRef.current?.focus();
+  };
+
+  const visibleTabs = TABS.filter((tab) => tab.id !== "admin" || isAdmin);
+
   return (
-    <nav class="nav" aria-label="Secciones del club">
-      {TABS.filter((tab) => tab.id !== "admin" || isAdmin).map((tab) => {
-        const badge = tab.id === "admin" ? pending : 0;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            class={`tab ${active === tab.id ? "active" : ""}`}
-            aria-current={active === tab.id ? "page" : undefined}
-            onClick={() => select(tab.id)}
-          >
-            {tab.label}
-            {badge > 0 && <span class="tab-badge">{badge}</span>}
-          </button>
-        );
-      })}
-    </nav>
+    <Fragment>
+      <div
+        class={`fab-backdrop ${open ? "is-open" : ""}`}
+        onClick={close}
+        aria-hidden="true"
+      />
+
+      <nav
+        ref={menuRef}
+        class={`fab-menu ${open ? "is-open" : ""}`}
+        aria-label="Secciones del club"
+      >
+        {visibleTabs.map((tab) => {
+          const badge = tab.id === "admin" ? pending : 0;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              class={`fab-item ${active === tab.id ? "is-active" : ""}`}
+              aria-current={active === tab.id ? "page" : undefined}
+              tabIndex={open ? 0 : -1}
+              onClick={() => select(tab.id)}
+            >
+              <span class="fab-item-icon" aria-hidden="true">
+                {ICONS[tab.id]}
+              </span>
+              <span class="fab-item-label">{tab.label}</span>
+              {badge > 0 && <span class="fab-item-badge">{badge}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div class="fab-wrap">
+        <button
+          ref={fabRef}
+          type="button"
+          class={`fab-btn ${open ? "is-open" : ""}`}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label={open ? "Cerrar navegación" : "Abrir navegación"}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span class="fab-ring" aria-hidden="true" />
+          <img class="fab-shield" src="/images/escudo.png" alt="" />
+          <span class="fab-close" aria-hidden="true">✕</span>
+          {pending > 0 && (
+            <span class="fab-badge" aria-hidden="true">{pending}</span>
+          )}
+        </button>
+      </div>
+    </Fragment>
   );
 }
