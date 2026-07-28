@@ -69,9 +69,9 @@ button,input,textarea,select{font-family:inherit}
 @keyframes toastOut{to{opacity:0;transform:translateY(-8px) scale(.97)}}
 @keyframes shimmer{to{background-position:200% 0}}
 
-.topbar,.hero,.nav{animation:rise .5s var(--ease) both}
+.topbar,.hero{animation:rise .5s var(--ease) both}
 .hero{animation-delay:.05s}
-.nav{animation-delay:.1s}
+.fab-wrap{animation:fade .5s var(--ease) .2s both}
 .content.active{animation:fade .35s var(--ease) both}
 
 @media(prefers-reduced-motion:reduce){
@@ -186,28 +186,83 @@ button,input,textarea,select{font-family:inherit}
 .btn-sm{padding:8px 12px;font-size:11px}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
 
-/* ── Tabs ───────────────────────────────────────────────────────────── */
-.nav{
-  position:sticky;top:10px;z-index:20;display:grid;grid-template-columns:repeat(3,1fr);
-  overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.9);backdrop-filter:blur(14px);
-  border-radius:var(--radius);margin-bottom:32px;
+/* ── Floating nav (FAB) ────────────────────────────────────────────────
+   Replaces the old sticky top tab-bar. A single circular trigger (bottom
+   corner, thumb reach on mobile) expands into the section list, so the
+   page itself keeps the full width instead of losing a row to tabs. ── */
+@keyframes fabPulse{0%{transform:scale(.82);opacity:.75}70%{transform:scale(1.4);opacity:0}100%{opacity:0}}
+
+.fab-wrap{
+  position:fixed;z-index:900;
+  left:max(18px, env(safe-area-inset-left));
+  bottom:max(18px, env(safe-area-inset-bottom));
 }
-@media(min-width:820px){.nav{grid-template-columns:repeat(6,1fr)}}
-.tab{
-  border:0;background:transparent;color:#fff;padding:16px 10px;border-bottom:3px solid transparent;
-  text-transform:uppercase;letter-spacing:.1em;font-weight:800;font-size:12px;cursor:pointer;
-  transition:color .2s, background .2s, border-color .2s;position:relative;
+.fab-btn{
+  position:relative;width:60px;height:60px;border-radius:50%;padding:0;cursor:pointer;
+  background:radial-gradient(circle at 32% 28%, #141414, #000 70%);
+  border:2px solid var(--green);box-shadow:0 12px 30px rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .25s var(--ease), border-color .2s, box-shadow .25s var(--ease);
 }
-.tab:hover{color:var(--green);background:rgba(134,188,37,.06)}
-.tab.active{border-bottom-color:var(--green);color:var(--green);background:rgba(134,188,37,.08)}
-.tab-badge{
-  display:inline-block;margin-left:6px;min-width:18px;padding:2px 5px;border-radius:999px;
-  background:var(--danger);color:#2a0000;font-size:10px;line-height:1.4;vertical-align:middle;
+.fab-btn:hover{transform:translateY(-2px) scale(1.04);border-color:var(--green2)}
+.fab-btn:active{transform:scale(.95)}
+.fab-ring{position:absolute;inset:-6px;border-radius:50%;border:1px solid rgba(134,188,37,.55);animation:fabPulse 2.6s ease-out infinite;pointer-events:none}
+.fab-btn.is-open .fab-ring{animation:none;opacity:0}
+.fab-shield{width:36px;height:auto;display:block;transition:opacity .2s var(--ease),transform .3s var(--ease)}
+.fab-close{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:20px;line-height:1;color:var(--green);
+  opacity:0;transform:rotate(-40deg) scale(.5);transition:opacity .2s var(--ease),transform .3s var(--ease);
+}
+.fab-btn.is-open .fab-shield{opacity:0;transform:rotate(35deg) scale(.6)}
+.fab-btn.is-open .fab-close{opacity:1;transform:rotate(0) scale(1)}
+.fab-badge{
+  position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;
+  background:var(--danger);color:#2a0000;font-size:10.5px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;border:2px solid var(--black);
+}
+.fab-btn.is-open .fab-badge{opacity:0}
+
+.fab-backdrop{
+  position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .22s var(--ease);
+}
+.fab-backdrop.is-open{opacity:1;pointer-events:auto}
+
+.fab-menu{
+  position:fixed;z-index:960;display:flex;flex-direction:column;gap:8px;min-width:208px;
+  left:max(18px, env(safe-area-inset-left));
+  bottom:calc(max(18px, env(safe-area-inset-bottom)) + 74px);
+  pointer-events:none;
+}
+.fab-menu.is-open{pointer-events:auto}
+.fab-item{
+  display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:rgba(10,10,10,.92);
+  border-radius:999px;padding:15px 14px;color:#fff;font-weight:800;font-size:12.5px;
+  text-transform:uppercase;letter-spacing:.05em;cursor:pointer;text-align:left;font-family:inherit;
+  opacity:0;transform:translateY(10px) scale(.94);
+  transition:opacity .2s var(--ease),transform .2s var(--ease),border-color .2s,background .2s,color .2s;
+  box-shadow:0 10px 26px rgba(0,0,0,.4);
+}
+.fab-menu.is-open .fab-item{opacity:1;transform:translateY(0) scale(1)}
+.fab-menu.is-open .fab-item:nth-last-child(1){transition-delay:.02s}
+.fab-menu.is-open .fab-item:nth-last-child(2){transition-delay:.05s}
+.fab-menu.is-open .fab-item:nth-last-child(3){transition-delay:.08s}
+.fab-menu.is-open .fab-item:nth-last-child(4){transition-delay:.11s}
+.fab-menu.is-open .fab-item:nth-last-child(5){transition-delay:.14s}
+.fab-menu.is-open .fab-item:nth-last-child(6){transition-delay:.17s}
+.fab-item:hover{border-color:rgba(134,188,37,.5);background:rgba(0,0,0,.98)}
+.fab-item.is-active{border-color:var(--green);color:var(--green);background:rgba(134,188,37,.12)}
+.fab-item-icon{font-size:16px;flex:0 0 auto;display:flex}
+.fab-item-label{flex:1;min-width:0}
+.fab-item-badge{
+  background:var(--danger);color:#2a0000;font-size:10px;font-weight:900;min-width:18px;height:18px;
+  border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px;
 }
 
 .content{display:none}
 .content.active{display:block}
-/* While a modal is open, lift the active section above the sticky nav (z-index:20) so the nav can't paint over the dialog. */
+/* Keeps the active section in its own stacking context while a modal is open; harmless now that nav is a fixed FAB (z-index:900), well below the modal (z-index:1000). */
 body.modal-open .content.active{position:relative;z-index:30}
 
 /* ── Section headers ────────────────────────────────────────────────── */
