@@ -198,7 +198,7 @@ button,input,textarea,select{font-family:inherit}
   bottom:max(18px, env(safe-area-inset-bottom));
 }
 .fab-btn{
-  position:relative;width:60px;height:60px;border-radius:50%;padding:0;cursor:pointer;
+  position:relative;width:68px;height:68px;border-radius:50%;padding:0;cursor:pointer;
   background:radial-gradient(circle at 32% 28%, #141414, #000 70%);
   border:2px solid var(--green);box-shadow:0 12px 30px rgba(0,0,0,.6);
   display:flex;align-items:center;justify-content:center;
@@ -208,20 +208,20 @@ button,input,textarea,select{font-family:inherit}
 .fab-btn:active{transform:scale(.95)}
 .fab-ring{position:absolute;inset:-6px;border-radius:50%;border:1px solid rgba(134,188,37,.55);animation:fabPulse 2.6s ease-out infinite;pointer-events:none}
 .fab-btn.is-open .fab-ring{animation:none;opacity:0}
-.fab-shield{width:36px;height:auto;display:block;transition:opacity .2s var(--ease),transform .3s var(--ease)}
+.fab-shield{width:40px;height:auto;display:block;transition:opacity .2s var(--ease),transform .3s var(--ease)}
 .fab-close{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:20px;line-height:1;color:var(--green);
+  font-size:22px;line-height:1;color:var(--green);
   opacity:0;transform:rotate(-40deg) scale(.5);transition:opacity .2s var(--ease),transform .3s var(--ease);
 }
 .fab-btn.is-open .fab-shield{opacity:0;transform:rotate(35deg) scale(.6)}
 .fab-btn.is-open .fab-close{opacity:1;transform:rotate(0) scale(1)}
 .fab-badge{
-  position:absolute;top:7px;right:7px;min-width:24px;height:24px;padding:0 5px;border-radius:999px;
+  position:absolute;top:8px;right:8px;min-width:28px;height:28px;padding:0 6px;border-radius:999px;
   background:radial-gradient(circle at 32% 28%, var(--green2), var(--green) 75%);
-  box-shadow:inset 0 1px 2px rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.25);
+  box-shadow:0 0 6px rgba(167,242,58,.75), inset 0 1px 2px rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.25);
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:900;color:#0c1a02;
+  font-size:12px;font-weight:900;color:#0c1a02;
 }
 .fab-btn.is-open .fab-badge{opacity:0}
 
@@ -234,7 +234,7 @@ button,input,textarea,select{font-family:inherit}
 .fab-menu{
   position:fixed;z-index:960;display:flex;flex-direction:column;gap:8px;min-width:208px;
   right:max(18px, env(safe-area-inset-right));
-  bottom:calc(max(18px, env(safe-area-inset-bottom)) + 74px);
+  bottom:calc(max(18px, env(safe-area-inset-bottom)) + 82px);
   pointer-events:none;
 }
 .fab-menu.is-open{pointer-events:auto}
@@ -537,7 +537,7 @@ body.modal-open .content.active{position:relative;z-index:30}
 
 /* ── Toasts ─────────────────────────────────────────────────────────── */
 /* bottom offset cleared to sit above the FAB, which now lives in the same corner */
-.toast-host{position:fixed;right:18px;bottom:calc(max(18px, env(safe-area-inset-bottom)) + 74px);z-index:1100;display:flex;flex-direction:column;gap:10px;max-width:min(360px,calc(100vw - 36px))}
+.toast-host{position:fixed;right:18px;bottom:calc(max(18px, env(safe-area-inset-bottom)) + 82px);z-index:1100;display:flex;flex-direction:column;gap:10px;max-width:min(360px,calc(100vw - 36px))}
 .toast{
   display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border-radius:14px;cursor:pointer;
   border:1px solid var(--line-2);background:#0d0d0d;box-shadow:0 14px 40px rgba(0,0,0,.6);
